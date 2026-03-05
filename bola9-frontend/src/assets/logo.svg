@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" class="w-full h-full">
+  <defs>
+    <clipPath id="ballCircle">
+      <circle cx="50" cy="50" r="48" />
+    </clipPath>
+  </defs>
+  
+  <circle cx="50" cy="50" r="48" fill="#FFFFFF" stroke="#D1D5DB" stroke-width="0.5"/>
+  
+  <rect x="0" y="30" width="100" height="40" fill="#FBBF24" clip-path="url(#ballCircle)"/>
+  
+  <circle cx="50" cy="50" r="20" fill="#FFFFFF" stroke="#D1D5DB" stroke-width="1"/>
+  
+  <text x="50" y="66" text-anchor="middle" font-size="45" font-family="'Helvetica Neue', Helvetica, Arial, sans-serif" font-weight="bold" fill="#000000">9</text>
+</svg>

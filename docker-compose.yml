@@ -1,0 +1,18 @@
+version: '3.8'
+
+services:
+  postgres_db:
+    image: postgres:16-alpine
+    container_name: bola9_postgres
+    restart: always
+    environment:
+      POSTGRES_USER: bola9_admin
+      POSTGRES_PASSWORD: bola9_password_segura
+      POSTGRES_DB: bola9_db
+    ports:
+      - "5433:5432"
+    volumes:
+      - bola9_data:/var/lib/postgresql/data
+
+volumes:
+  bola9_data:

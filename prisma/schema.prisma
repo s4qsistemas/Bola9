@@ -1,0 +1,70 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  USER
+  ADMIN
+}
+
+enum BookingStatus {
+  CONFIRMED
+  CANCELLED
+  COMPLETED
+  NO_SHOW
+}
+
+model User {
+  id        String    @id @default(uuid())
+  email     String    @unique
+  password  String    
+  name      String
+  alias     String?   
+  isActive  Boolean   @default(true) 
+  role      Role      @default(USER)
+  cancelCount        Int       @default(0)     
+  noShowCount        Int       @default(0)     
+  mustChangePassword Boolean   @default(false) 
+  bookings  Booking[]
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+}
+
+model PoolTable {
+  id          String    @id @default(uuid())
+  number      Int       @unique
+  isActive    Boolean   @default(true)
+  bookings    Booking[]
+}
+model BusinessHour {
+  id          String   @id @default(uuid())
+  dayOfWeek   Int      @unique
+  isOpen      Boolean  @default(true)
+  openTime    String?  
+  closeTime   String?  
+}
+
+model ClosedDate {
+  id          String   @id @default(uuid())
+  date        DateTime @unique @db.Date
+  reason      String?  
+}
+
+model Booking {
+  id          String        @id @default(uuid())
+  userId      String
+  tableId     String
+  startTime   DateTime
+  endTime     DateTime
+  status      BookingStatus @default(CONFIRMED)
+  cancellationReason String?
+  user        User          @relation(fields: [userId], references: [id])
+  table       PoolTable     @relation(fields: [tableId], references: [id])
+  createdAt   DateTime      @default(now())
+  @@index([startTime, endTime]) 
+}

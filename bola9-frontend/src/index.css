@@ -1,0 +1,6 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Cualquier CSS global estrictamente necesario irá debajo de esto, 
+   pero el 99% del diseño lo haremos con clases de Tailwind en los componentes */
