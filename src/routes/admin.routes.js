@@ -4,6 +4,7 @@ const {
     getDailyShiftBookings,
     updateBookingStatus,
     getUsers,
+    getUserBookings,
     toggleUserStatus,
     toggleTableStatus,
     resetUserPassword
@@ -19,6 +20,7 @@ router.patch('/bookings/:id/status', updateBookingStatus);
 
 // --- Rutas de Usuarios (NUEVAS) ---
 router.get('/users', getUsers);
+router.get('/users/:id/bookings', getUserBookings);
 router.patch('/users/:id/status', toggleUserStatus);
 router.patch('/users/:id/reset-password', resetUserPassword);
 

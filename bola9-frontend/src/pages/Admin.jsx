@@ -4,7 +4,7 @@ import api from '../api';
 import dayjs from 'dayjs';
 import utc from 'dayjs/plugin/utc';
 dayjs.extend(utc);
-import { LogOut, Clock, User, Hash, ExternalLink, Users, Calendar, Ban, CheckCircle, UserX, XCircle, AlertTriangle, Info, ShieldAlert, Settings, Plus, Trash2, Key } from 'lucide-react';
+import { LogOut, Clock, User, Hash, ExternalLink, Users, Calendar, Ban, CheckCircle, UserX, XCircle, AlertTriangle, Info, ShieldAlert, Settings, Plus, Trash2, Key, History } from 'lucide-react';
 import bola9Logo from '../assets/logo.svg';
 
 const DAYS_OF_WEEK = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
@@ -23,6 +23,9 @@ export default function Admin() {
     const [isLoadingSettings, setIsLoadingSettings] = useState(false);
     const [newClosedDate, setNewClosedDate] = useState('');
     const [newClosedReason, setNewClosedReason] = useState('');
+
+    // Estado del modal de historial
+    const [historyModal, setHistoryModal] = useState({ open: false, userName: '', bookings: [], loading: false });
 
     const navigate = useNavigate();
     const userStr = localStorage.getItem('bola9_user');
@@ -126,6 +129,18 @@ export default function Admin() {
             await api.delete(`/api/admin/settings/closed-dates/${id}`, getHeaders());
             fetchSettings();
         } catch (err) { alert('Error eliminando fecha.'); }
+    };
+
+    // --- HISTORIAL DE RESERVAS ---
+    const fetchUserBookings = async (userId, userName) => {
+        setHistoryModal({ open: true, userName, bookings: [], loading: true });
+        try {
+            const response = await api.get(`/api/admin/users/${userId}/bookings`, getHeaders());
+            setHistoryModal({ open: true, userName, bookings: response.data.data, loading: false });
+        } catch (err) {
+            alert('Error al cargar el historial de reservas.');
+            setHistoryModal({ open: false, userName: '', bookings: [], loading: false });
+        }
     };
 
     return (
@@ -273,6 +288,14 @@ export default function Admin() {
                                                         {u.role !== 'ADMIN' && (
                                                             <div className="flex items-center justify-end gap-2">
                                                                 <button
+                                                                    onClick={() => fetchUserBookings(u.id, u.alias || u.name)}
+                                                                    className="text-xs p-1.5 rounded border border-slate-700 bg-slate-800 text-blue-400 hover:bg-blue-500 hover:text-white transition-colors shadow-sm"
+                                                                    title="Ver Historial de Reservas"
+                                                                >
+                                                                    <History size={16} />
+                                                                </button>
+
+                                                                <button
                                                                     onClick={() => handleResetPassword(u.id, u.name)}
                                                                     className="text-xs p-1.5 rounded border border-slate-700 bg-slate-800 text-amber-400 hover:bg-amber-500 hover:text-white transition-colors shadow-sm"
                                                                     title="Resetear a Clave Temporal"
@@ -375,6 +398,86 @@ export default function Admin() {
                 )}
 
             </main>
+
+            {/* --- MODAL: HISTORIAL DE RESERVAS --- */}
+            {historyModal.open && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4" onClick={() => setHistoryModal({ open: false, userName: '', bookings: [], loading: false })}>
+                    <div className="bg-slate-900 border border-slate-700 rounded-xl shadow-2xl w-full max-w-3xl max-h-[80vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
+                        {/* Header */}
+                        <div className="flex items-center justify-between p-6 border-b border-slate-800">
+                            <div className="flex items-center gap-3">
+                                <History className="text-blue-400" size={22} />
+                                <h2 className="text-lg font-bold text-white">Historial de Reservas</h2>
+                                <span className="text-sm text-brand-primary font-medium">— {historyModal.userName}</span>
+                            </div>
+                            <button onClick={() => setHistoryModal({ open: false, userName: '', bookings: [], loading: false })} className="text-gray-400 hover:text-white transition-colors p-1">
+                                <XCircle size={22} />
+                            </button>
+                        </div>
+
+                        {/* Body */}
+                        <div className="overflow-y-auto flex-1 p-6">
+                            {historyModal.loading ? (
+                                <div className="text-center text-gray-400 py-10">Cargando historial...</div>
+                            ) : historyModal.bookings.length === 0 ? (
+                                <div className="text-center text-gray-500 py-10">Sin reservas registradas para este cliente.</div>
+                            ) : (
+                                <table className="w-full text-left border-collapse">
+                                    <thead>
+                                        <tr className="bg-slate-800 text-gray-400 text-sm border-b border-slate-700">
+                                            <th className="p-3 font-medium">Fecha</th>
+                                            <th className="p-3 font-medium">Mesa</th>
+                                            <th className="p-3 font-medium">Duración</th>
+                                            <th className="p-3 font-medium">Estado</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-slate-800">
+                                        {historyModal.bookings.map((b) => {
+                                            const start = dayjs(b.startTime);
+                                            const end = dayjs(b.endTime);
+                                            const diffMin = end.diff(start, 'minute');
+                                            const hours = Math.floor(diffMin / 60);
+                                            const mins = diffMin % 60;
+                                            const duration = hours > 0 ? `${hours}h ${mins}min` : `${mins}min`;
+
+                                            return (
+                                                <tr key={b.id} className="hover:bg-slate-800/50 transition-colors">
+                                                    <td className="p-3 text-sm text-gray-200">{start.format('DD/MM/YYYY HH:mm')}</td>
+                                                    <td className="p-3 text-sm text-gray-300">Mesa {b.table.number}</td>
+                                                    <td className="p-3 text-sm text-gray-300">{duration}</td>
+                                                    <td className="p-3">
+                                                        <span className={`px-2 py-0.5 text-xs rounded border flex items-center gap-1 w-max ${b.status === 'CONFIRMED' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' :
+                                                                b.status === 'COMPLETED' ? 'bg-blue-500/10 text-blue-400 border-blue-500/20' :
+                                                                    b.status === 'NO_SHOW' ? 'bg-amber-500/10 text-amber-400 border-amber-500/20' :
+                                                                        'bg-red-500/10 text-red-400 border-red-500/20'
+                                                            }`}>
+                                                            {b.status === 'COMPLETED' && <CheckCircle size={12} />}
+                                                            {b.status === 'NO_SHOW' && <UserX size={12} />}
+                                                            {b.status === 'CANCELLED' && <XCircle size={12} />}
+                                                            {b.status === 'CONFIRMED' && <Clock size={12} />}
+                                                            {b.status === 'CONFIRMED' ? 'Confirmada' :
+                                                                b.status === 'COMPLETED' ? 'Completada' :
+                                                                    b.status === 'NO_SHOW' ? 'No-Show' : 'Cancelada'}
+                                                        </span>
+                                                    </td>
+                                                </tr>
+                                            );
+                                        })}
+                                    </tbody>
+                                </table>
+                            )}
+                        </div>
+
+                        {/* Footer */}
+                        {!historyModal.loading && historyModal.bookings.length > 0 && (
+                            <div className="border-t border-slate-800 px-6 py-3 text-xs text-gray-500 text-right">
+                                {historyModal.bookings.length} reserva{historyModal.bookings.length !== 1 ? 's' : ''} en total
+                            </div>
+                        )}
+                    </div>
+                </div>
+            )}
+
         </div>
     );
 }

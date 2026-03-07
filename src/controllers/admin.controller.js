@@ -211,10 +211,34 @@ const resetUserPassword = async (req, res) => {
     }
 };
 
+// 7. Historial de reservas de un usuario específico
+const getUserBookings = async (req, res) => {
+    try {
+        const { id } = req.params;
+
+        const user = await prisma.user.findUnique({ where: { id }, select: { id: true } });
+        if (!user) return res.status(404).json({ error: 'Usuario no encontrado.' });
+
+        const bookings = await prisma.booking.findMany({
+            where: { userId: id },
+            include: {
+                table: { select: { number: true } }
+            },
+            orderBy: { startTime: 'desc' }
+        });
+
+        res.status(200).json({ data: bookings });
+    } catch (error) {
+        console.error('Error obteniendo historial de reservas:', error);
+        res.status(500).json({ error: 'Error interno al obtener el historial de reservas.' });
+    }
+};
+
 module.exports = {
     getDailyShiftBookings,
     updateBookingStatus,
     getUsers,
+    getUserBookings,
     toggleUserStatus,
     toggleTableStatus,
     resetUserPassword
