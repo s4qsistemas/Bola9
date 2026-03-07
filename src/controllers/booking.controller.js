@@ -227,7 +227,7 @@ const cancelMyBooking = async (req, res) => {
                     });
                     return { autoBanned: true, isLateCancel: true };
                 }
-                return { autoBanned: false, isLateCancel: true };
+                return { autoBanned: false, isLateCancel: true, newCancelCount: updatedUser.cancelCount };
             }
 
             // Cancelación Temprana (> 2 hrs), no sumamos Strikes
@@ -235,11 +235,11 @@ const cancelMyBooking = async (req, res) => {
         });
 
         if (result.autoBanned) {
-            res.status(200).json({ autoBanned: true, message: 'Reserva cancelada. Acumulaste 3 "Strikes" por cancelaciones tardías. Tu cuenta ha sido suspendida.' });
+            res.status(200).json({ autoBanned: true, strikeCount: 3, message: '¡Strike 3! Reserva cancelada. Acumulaste 3 Strikes por cancelaciones tardías. Tu cuenta ha sido suspendida según las políticas de uso.' });
         } else if (result.isLateCancel) {
-            res.status(200).json({ autoBanned: false, message: 'Reserva cancelada. Se te aplicó 1 "Strike" por cancelar con menos de 2 horas de anticipación.' });
+            res.status(200).json({ autoBanned: false, strikeCount: result.newCancelCount, message: `Strike ${result.newCancelCount} de 3. Reserva cancelada. Se te aplicó 1 Strike por cancelar con menos de 2 horas de anticipación.` });
         } else {
-            res.status(200).json({ autoBanned: false, message: 'Reserva cancelada con éxito a tiempo. ¡Gracias por avisar!' });
+            res.status(200).json({ autoBanned: false, strikeCount: null, message: 'Reserva cancelada con éxito a tiempo. ¡Gracias por avisar!' });
         }
 
     } catch (error) {

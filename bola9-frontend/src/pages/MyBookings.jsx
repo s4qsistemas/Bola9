@@ -9,6 +9,7 @@ export default function MyBookings() {
     const [myBookings, setMyBookings] = useState([]);
     const [stats, setStats] = useState({ cancelCount: 0, noShowCount: 0 });
     const [isLoading, setIsLoading] = useState(true);
+    const [cancelModal, setCancelModal] = useState({ open: false, bookingId: null, isThirdStrike: false, isLateCancel: false });
     const navigate = useNavigate();
 
     const userStr = localStorage.getItem('bola9_user');
@@ -34,8 +35,19 @@ export default function MyBookings() {
         fetchMyBookings();
     }, [navigate]);
 
-    const handleCancel = async (bookingId) => {
-        if (!window.confirm('¿Seguro que deseas cancelar? Recuerda que si falta menos de 2 horas, sumarás un Strike.')) return;
+    const handleCancel = (bookingId) => {
+        // Detectar si es cancelación tardía
+        const booking = myBookings.find(b => b.id === bookingId);
+        if (!booking) return;
+        const minutesDiff = dayjs(booking.startTime).diff(dayjs(), 'minute');
+        const isLateCancel = minutesDiff < 120;
+        const isThirdStrike = isLateCancel && stats.cancelCount >= 2;
+        setCancelModal({ open: true, bookingId, isThirdStrike, isLateCancel });
+    };
+
+    const confirmCancel = async () => {
+        const { bookingId } = cancelModal;
+        setCancelModal({ open: false, bookingId: null, isThirdStrike: false, isLateCancel: false });
 
         const token = localStorage.getItem('bola9_token');
         try {
@@ -48,7 +60,6 @@ export default function MyBookings() {
                 handleLogout();
             } else {
                 alert(response.data.message);
-                // Recargamos la página para actualizar los strikes visualmente
                 window.location.reload();
             }
         } catch (error) {
@@ -172,6 +183,64 @@ export default function MyBookings() {
                     </div>
                 )}
             </main>
+
+            {/* MODAL DE CONFIRMACIÓN DE CANCELACIÓN */}
+            {cancelModal.open && (
+                <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
+                    <div className="bg-slate-900 border border-slate-700 rounded-xl w-full max-w-md shadow-2xl">
+                        <div className="p-6">
+                            {cancelModal.isThirdStrike ? (
+                                /* ALERTA ROJA: TERCER STRIKE = BANEO */
+                                <div className="bg-red-500/10 border-2 border-red-500 rounded-lg p-4 mb-4">
+                                    <div className="flex items-center gap-2 text-red-400 font-bold text-lg mb-2">
+                                        <ShieldAlert size={22} /> ¡ADVERTENCIA CRÍTICA!
+                                    </div>
+                                    <p className="text-red-300 text-sm leading-relaxed">
+                                        Ya tienes <strong className="text-white">2 Strikes de 3</strong>. Si confirmas esta cancelación tardía, se te aplicará el <strong className="text-white">Strike 3</strong> y tu cuenta será <strong className="text-red-400">SUSPENDIDA INMEDIATAMENTE</strong> de acuerdo a las políticas de uso.
+                                    </p>
+                                    <p className="text-red-400 text-xs mt-3 font-semibold">Todas tus reservas futuras serán canceladas automáticamente.</p>
+                                </div>
+                            ) : cancelModal.isLateCancel ? (
+                                /* ALERTA ÁMBAR: STRIKE 1 o 2 */
+                                <div className="bg-amber-500/10 border border-amber-500/50 rounded-lg p-4 mb-4">
+                                    <div className="flex items-center gap-2 text-amber-400 font-bold mb-2">
+                                        <AlertTriangle size={20} /> Cancelación Tardía
+                                    </div>
+                                    <p className="text-amber-200 text-sm leading-relaxed">
+                                        Faltan menos de 2 horas. Si cancelas, se te sumará <strong className="text-white">1 Strike</strong>. Actualmente llevas <strong className="text-white">{stats.cancelCount} de 3</strong>.
+                                    </p>
+                                </div>
+                            ) : (
+                                /* CANCELACIÓN NORMAL (sin penalización) */
+                                <div className="bg-slate-800 border border-slate-700 rounded-lg p-4 mb-4">
+                                    <p className="text-gray-300 text-sm">¿Deseas cancelar esta reserva? Al cancelar con más de 2 horas de anticipación <strong className="text-emerald-400">no se aplica ninguna penalización</strong>.</p>
+                                </div>
+                            )}
+
+                            <p className="text-gray-400 text-sm mb-5">¿Confirmas que deseas cancelar esta reserva?</p>
+
+                            <div className="flex gap-3">
+                                <button
+                                    onClick={confirmCancel}
+                                    className={`flex-1 font-semibold py-2.5 rounded transition-colors ${cancelModal.isThirdStrike
+                                            ? 'bg-red-600 text-white hover:bg-red-500'
+                                            : 'bg-amber-500 text-brand-dark hover:bg-amber-400'
+                                        }`}
+                                >
+                                    {cancelModal.isThirdStrike ? 'Cancelar Igualmente' : 'Sí, Cancelar'}
+                                </button>
+                                <button
+                                    onClick={() => setCancelModal({ open: false, bookingId: null, isThirdStrike: false, isLateCancel: false })}
+                                    className="flex-1 bg-slate-700 text-gray-300 font-medium py-2.5 rounded hover:bg-slate-600 transition-colors"
+                                >
+                                    Volver
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
         </div>
     );
 }
