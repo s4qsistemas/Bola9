@@ -208,8 +208,9 @@ export default function Login() {
                                 <input
                                     type={showPassword ? "text" : "password"}
                                     required
+                                    minLength={isRegistering ? 6 : undefined}
                                     className="w-full pl-10 pr-12 py-2 bg-slate-900 border border-slate-700 rounded text-white focus:outline-none focus:border-brand-primary"
-                                    placeholder="••••••••"
+                                    placeholder={isRegistering ? "Mínimo 6 caracteres" : "••••••••"}
                                     value={password}
                                     onChange={(e) => setPassword(e.target.value)}
                                 />
@@ -221,6 +222,9 @@ export default function Login() {
                                     {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
                                 </button>
                             </div>
+                            {isRegistering && password.length > 0 && password.length < 6 && (
+                                <p className="text-xs text-red-400 mt-1">La contraseña debe tener al menos 6 caracteres.</p>
+                            )}
                         </div>
 
                         {/* Checkbox de Políticas (Solo visible en registro) */}
@@ -243,8 +247,8 @@ export default function Login() {
                         {/* Botón Maestro */}
                         <button
                             type="submit"
-                            disabled={isLoading || (isRegistering && !acceptPolicies)}
-                            className={`w-full py-2.5 mt-2 rounded font-semibold text-brand-dark transition-all ${isLoading || (isRegistering && !acceptPolicies)
+                            disabled={isLoading || (isRegistering && (!acceptPolicies || password.length < 6))}
+                            className={`w-full py-2.5 mt-2 rounded font-semibold text-brand-dark transition-all ${isLoading || (isRegistering && (!acceptPolicies || password.length < 6))
                                 ? 'bg-gray-500 cursor-not-allowed opacity-50'
                                 : 'bg-brand-primary hover:bg-emerald-400 hover:shadow-[0_0_15px_rgba(16,185,129,0.4)]'
                                 }`}
