@@ -234,11 +234,31 @@ const getUserBookings = async (req, res) => {
     }
 };
 
+// 8. Obtener fechas que tienen reservas (para el calendario del admin)
+const getBookingDates = async (req, res) => {
+    try {
+        const since = dayjs().subtract(90, 'day').toDate();
+        const bookings = await prisma.booking.findMany({
+            where: { startTime: { gte: since } },
+            select: { startTime: true },
+            distinct: ['startTime']
+        });
+
+        // Extraer fechas únicas en formato YYYY-MM-DD
+        const dateSet = new Set(bookings.map(b => dayjs(b.startTime).format('YYYY-MM-DD')));
+        res.status(200).json({ data: [...dateSet].sort() });
+    } catch (error) {
+        console.error('Error obteniendo fechas con reservas:', error);
+        res.status(500).json({ error: 'Error interno.' });
+    }
+};
+
 module.exports = {
     getDailyShiftBookings,
     updateBookingStatus,
     getUsers,
     getUserBookings,
+    getBookingDates,
     toggleUserStatus,
     toggleTableStatus,
     resetUserPassword

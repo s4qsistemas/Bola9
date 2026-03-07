@@ -5,6 +5,7 @@ const {
     updateBookingStatus,
     getUsers,
     getUserBookings,
+    getBookingDates,
     toggleUserStatus,
     toggleTableStatus,
     resetUserPassword
@@ -16,6 +17,7 @@ router.use(verifyToken, isAdmin);
 
 // --- Rutas de Reservas ---
 router.get('/bookings/shift', getDailyShiftBookings);
+router.get('/bookings/dates', getBookingDates);
 router.patch('/bookings/:id/status', updateBookingStatus);
 
 // --- Rutas de Usuarios (NUEVAS) ---

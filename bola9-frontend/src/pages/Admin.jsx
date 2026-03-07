@@ -1,10 +1,12 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import api from '../api';
 import dayjs from 'dayjs';
 import utc from 'dayjs/plugin/utc';
+import 'dayjs/locale/es';
 dayjs.extend(utc);
-import { LogOut, Clock, User, Hash, ExternalLink, Users, Calendar, Ban, CheckCircle, UserX, XCircle, AlertTriangle, Info, ShieldAlert, Settings, Plus, Trash2, Key, History } from 'lucide-react';
+dayjs.locale('es');
+import { LogOut, Clock, User, Hash, ExternalLink, Users, Calendar, Ban, CheckCircle, UserX, XCircle, AlertTriangle, Info, ShieldAlert, Settings, Plus, Trash2, Key, History, ChevronLeft, ChevronRight, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
 import bola9Logo from '../assets/logo.svg';
 
 const DAYS_OF_WEEK = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
@@ -14,6 +16,12 @@ export default function Admin() {
 
     const [bookings, setBookings] = useState([]);
     const [isLoadingBookings, setIsLoadingBookings] = useState(true);
+    const [selectedDate, setSelectedDate] = useState(dayjs().format('YYYY-MM-DD'));
+    const [bookingDates, setBookingDates] = useState([]);
+    const [calendarOpen, setCalendarOpen] = useState(false);
+    const [calendarMonth, setCalendarMonth] = useState(dayjs());
+    const calendarRef = useRef(null);
+    const [sortConfig, setSortConfig] = useState({ key: 'startTime', dir: 'asc' });
 
     const [users, setUsers] = useState([]);
     const [isLoadingUsers, setIsLoadingUsers] = useState(false);
@@ -37,7 +45,16 @@ export default function Admin() {
         return () => clearInterval(timer);
     }, []);
 
-    useEffect(() => { fetchBookings(); }, [navigate]);
+    useEffect(() => { fetchBookings(selectedDate); fetchBookingDates(); }, [navigate]);
+
+    // Cerrar calendario al hacer clic fuera
+    useEffect(() => {
+        const handleClickOutside = (e) => {
+            if (calendarRef.current && !calendarRef.current.contains(e.target)) setCalendarOpen(false);
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, []);
 
     useEffect(() => {
         if (activeTab === 'users' && users.length === 0) fetchUsers();
@@ -48,12 +65,42 @@ export default function Admin() {
     const handleLogout = () => { localStorage.clear(); navigate('/'); };
 
     // --- FETCHERS ---
-    const fetchBookings = async () => {
+    const fetchBookings = async (date) => {
         if (bookings.length === 0) setIsLoadingBookings(true);
         try {
-            const response = await api.get(`/api/admin/bookings/shift?date=${dayjs().format('YYYY-MM-DD')}`, getHeaders());
+            const response = await api.get(`/api/admin/bookings/shift?date=${date || selectedDate}`, getHeaders());
             setBookings(response.data.data);
         } catch (err) { if (err.response?.status === 401) handleLogout(); } finally { setIsLoadingBookings(false); }
+    };
+
+    const fetchBookingDates = async () => {
+        try {
+            const response = await api.get('/api/admin/bookings/dates', getHeaders());
+            setBookingDates(response.data.data);
+        } catch (err) { /* silencioso */ }
+    };
+
+    const handleShiftDateChange = (e) => {
+        const newDate = e.target.value;
+        if (!newDate) return;
+        setSelectedDate(newDate);
+        setBookings([]);
+        fetchBookings(newDate);
+    };
+
+    const selectDate = (dateStr) => {
+        setSelectedDate(dateStr);
+        setCalendarOpen(false);
+        setBookings([]);
+        fetchBookings(dateStr);
+    };
+
+    const goToToday = () => {
+        const today = dayjs().format('YYYY-MM-DD');
+        setSelectedDate(today);
+        setCalendarMonth(dayjs());
+        setBookings([]);
+        fetchBookings(today);
     };
 
     const fetchUsers = async () => {
@@ -148,9 +195,86 @@ export default function Admin() {
             <nav className="bg-slate-900 border-b border-slate-800 p-4 flex justify-between items-center px-8">
                 <Link to="/" className="flex items-center gap-3 hover:opacity-80 transition-opacity">
                     <img src={bola9Logo} alt="Logo" className="w-10 h-10" />
-                    <div><h1 className="text-xl font-bold text-brand-primary">Bola9 Admin</h1><p className="text-xs text-gray-400">Turno: {dayjs().format('DD/MM/YYYY')}</p></div>
+                    <div><h1 className="text-xl font-bold text-brand-primary">Bola9 Admin</h1><p className="text-xs text-gray-400">Turno: {dayjs(selectedDate).format('DD/MM/YYYY')}</p></div>
                 </Link>
-                <div className="flex items-center gap-4">
+                <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-2">
+                        <div className="relative" ref={calendarRef}>
+                            <button
+                                onClick={() => setCalendarOpen(!calendarOpen)}
+                                className="flex items-center gap-2 bg-slate-800 border border-slate-700 text-sm text-gray-200 rounded px-3 py-1.5 hover:border-brand-primary transition-colors"
+                            >
+                                <Calendar size={14} className="text-brand-primary" />
+                                {dayjs(selectedDate).format('DD/MM/YYYY')}
+                            </button>
+
+                            {/* CALENDARIO CUSTOM */}
+                            {calendarOpen && (
+                                <div className="absolute top-full mt-2 right-0 z-50 bg-slate-900 border border-slate-700 rounded-xl shadow-2xl p-4 w-[300px]">
+                                    {/* Header: navegación de mes */}
+                                    <div className="flex items-center justify-between mb-3">
+                                        <button onClick={() => setCalendarMonth(calendarMonth.subtract(1, 'month'))} className="text-gray-400 hover:text-white p-1 rounded hover:bg-slate-800 transition-colors">
+                                            <ChevronLeft size={18} />
+                                        </button>
+                                        <span className="text-sm font-semibold text-white capitalize">{calendarMonth.format('MMMM YYYY')}</span>
+                                        <button onClick={() => setCalendarMonth(calendarMonth.add(1, 'month'))} className="text-gray-400 hover:text-white p-1 rounded hover:bg-slate-800 transition-colors">
+                                            <ChevronRight size={18} />
+                                        </button>
+                                    </div>
+                                    {/* Días de la semana */}
+                                    <div className="grid grid-cols-7 gap-1 mb-1">
+                                        {['Lu', 'Ma', 'Mi', 'Ju', 'Vi', 'Sá', 'Do'].map(d => (
+                                            <span key={d} className="text-center text-[10px] font-semibold text-gray-500 uppercase">{d}</span>
+                                        ))}
+                                    </div>
+                                    {/* Grid de días */}
+                                    <div className="grid grid-cols-7 gap-1">
+                                        {(() => {
+                                            const startOfMonth = calendarMonth.startOf('month');
+                                            const daysInMonth = calendarMonth.daysInMonth();
+                                            // dayjs .day(): 0=Dom, 1=Lun... Ajustar para empezar en Lunes
+                                            const startDay = (startOfMonth.day() + 6) % 7;
+                                            const cells = [];
+                                            // Celdas vacías antes del día 1
+                                            for (let i = 0; i < startDay; i++) cells.push(<div key={`e-${i}`} />);
+                                            // Días del mes
+                                            for (let d = 1; d <= daysInMonth; d++) {
+                                                const dateStr = calendarMonth.date(d).format('YYYY-MM-DD');
+                                                const isToday = dateStr === dayjs().format('YYYY-MM-DD');
+                                                const isSelected = dateStr === selectedDate;
+                                                const hasBookings = bookingDates.includes(dateStr);
+                                                cells.push(
+                                                    <button
+                                                        key={d}
+                                                        onClick={() => selectDate(dateStr)}
+                                                        className={`relative w-full aspect-square flex items-center justify-center text-xs rounded-lg transition-all overflow-visible pb-1 ${isSelected
+                                                            ? 'bg-brand-primary text-brand-dark font-bold'
+                                                            : isToday
+                                                                ? 'bg-slate-700 text-white font-semibold ring-1 ring-brand-primary'
+                                                                : hasBookings
+                                                                    ? 'text-emerald-300 hover:bg-slate-800 font-medium'
+                                                                    : 'text-gray-300 hover:bg-slate-800'
+                                                            }`}
+                                                    >
+                                                        {d}
+                                                        {hasBookings && !isSelected && (
+                                                            <span className="absolute bottom-0 left-1/2 -translate-x-1/2 w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                                                        )}
+                                                    </button>
+                                                );
+                                            }
+                                            return cells;
+                                        })()}
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                        {selectedDate !== dayjs().format('YYYY-MM-DD') && (
+                            <button onClick={goToToday} className="text-xs bg-brand-primary text-brand-dark font-semibold px-2.5 py-1.5 rounded hover:bg-emerald-400 transition-colors whitespace-nowrap">
+                                Hoy
+                            </button>
+                        )}
+                    </div>
                     <span className="text-sm text-gray-300">Hola, {adminUser.alias || adminUser.name}</span>
                     <Link to="/" className="hidden md:flex items-center gap-1 text-sm text-gray-400 hover:text-white"><ExternalLink size={14} /> Portal Público</Link>
                     <button onClick={handleLogout} className="flex items-center gap-2 text-sm bg-slate-800 hover:bg-red-500/20 hover:text-red-400 px-3 py-2 rounded transition-colors"><LogOut size={16} /> Salir</button>
@@ -167,7 +291,17 @@ export default function Admin() {
                 {/* --- PESTAÑA 1: RESERVAS DEL TURNO --- */}
                 {activeTab === 'bookings' && (
                     <div>
-                        {/* INSTRUCTIVO / LEYENDA VISUAL */}
+                        {/* Banner de fecha diferente a hoy */}
+                        {selectedDate !== dayjs().format('YYYY-MM-DD') && (
+                            <div className="mb-4 bg-amber-500/10 border border-amber-500/30 rounded-lg p-3 flex items-center justify-between">
+                                <span className="text-amber-300 text-sm flex items-center gap-2">
+                                    <Calendar size={16} /> Viendo turno del <strong className="text-white">{dayjs(selectedDate).format('dddd DD/MM/YYYY')}</strong>
+                                </span>
+                                <button onClick={goToToday} className="text-xs bg-amber-500 text-brand-dark font-semibold px-3 py-1 rounded hover:bg-amber-400 transition-colors">
+                                    Volver a Hoy
+                                </button>
+                            </div>
+                        )}
                         <div className="mb-6 bg-slate-800/50 border border-slate-700 rounded-lg p-4 flex flex-wrap gap-6 text-sm">
                             <div className="flex items-center gap-2"><span className="w-3 h-3 rounded-full bg-blue-500/50"></span> <span className="text-gray-300">Por Llegar (Faltan -15 min)</span></div>
                             <div className="flex items-center gap-2"><span className="w-3 h-3 rounded-full bg-amber-500/50"></span> <span className="text-gray-300">Atrasado (+1 a 45 min)</span></div>
@@ -187,15 +321,30 @@ export default function Admin() {
                                 <table className="w-full text-left border-collapse">
                                     <thead>
                                         <tr className="bg-slate-800 text-gray-400 text-sm border-b border-slate-700">
-                                            <th className="p-4 font-medium"><div className="flex items-center gap-2"><Clock size={16} /> Hora</div></th>
-                                            <th className="p-4 font-medium"><div className="flex items-center gap-2"><Hash size={16} /> Mesa</div></th>
-                                            <th className="p-4 font-medium"><div className="flex items-center gap-2"><User size={16} /> Cliente</div></th>
-                                            <th className="p-4 font-medium">Estado</th>
+                                            <th className="p-4 font-medium cursor-pointer select-none hover:text-white transition-colors" onClick={() => setSortConfig(s => ({ key: 'startTime', dir: s.key === 'startTime' && s.dir === 'asc' ? 'desc' : 'asc' }))}>
+                                                <div className="flex items-center gap-2"><Clock size={16} /> Hora {sortConfig.key === 'startTime' ? (sortConfig.dir === 'asc' ? <ArrowUp size={12} /> : <ArrowDown size={12} />) : <ArrowUpDown size={12} className="opacity-30" />}</div>
+                                            </th>
+                                            <th className="p-4 font-medium cursor-pointer select-none hover:text-white transition-colors" onClick={() => setSortConfig(s => ({ key: 'table', dir: s.key === 'table' && s.dir === 'asc' ? 'desc' : 'asc' }))}>
+                                                <div className="flex items-center gap-2"><Hash size={16} /> Mesa {sortConfig.key === 'table' ? (sortConfig.dir === 'asc' ? <ArrowUp size={12} /> : <ArrowDown size={12} />) : <ArrowUpDown size={12} className="opacity-30" />}</div>
+                                            </th>
+                                            <th className="p-4 font-medium cursor-pointer select-none hover:text-white transition-colors" onClick={() => setSortConfig(s => ({ key: 'user', dir: s.key === 'user' && s.dir === 'asc' ? 'desc' : 'asc' }))}>
+                                                <div className="flex items-center gap-2"><User size={16} /> Cliente {sortConfig.key === 'user' ? (sortConfig.dir === 'asc' ? <ArrowUp size={12} /> : <ArrowDown size={12} />) : <ArrowUpDown size={12} className="opacity-30" />}</div>
+                                            </th>
+                                            <th className="p-4 font-medium cursor-pointer select-none hover:text-white transition-colors" onClick={() => setSortConfig(s => ({ key: 'status', dir: s.key === 'status' && s.dir === 'asc' ? 'desc' : 'asc' }))}>
+                                                <div className="flex items-center gap-2">Estado {sortConfig.key === 'status' ? (sortConfig.dir === 'asc' ? <ArrowUp size={12} /> : <ArrowDown size={12} />) : <ArrowUpDown size={12} className="opacity-30" />}</div>
+                                            </th>
                                             <th className="p-4 font-medium text-center">Acciones</th>
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y divide-slate-800">
-                                        {bookings.map((booking) => {
+                                        {[...bookings].sort((a, b) => {
+                                            const dir = sortConfig.dir === 'asc' ? 1 : -1;
+                                            if (sortConfig.key === 'startTime') return dir * (new Date(a.startTime) - new Date(b.startTime));
+                                            if (sortConfig.key === 'table') return dir * (a.table.number - b.table.number);
+                                            if (sortConfig.key === 'user') return dir * (a.user.name || '').localeCompare(b.user.name || '');
+                                            if (sortConfig.key === 'status') return dir * a.status.localeCompare(b.status);
+                                            return 0;
+                                        }).map((booking) => {
                                             const bookingTime = dayjs(booking.startTime);
                                             const diffMinutes = bookingTime.diff(currentTime, 'minute');
                                             const isNext = booking.status === 'CONFIRMED' && diffMinutes > 0 && diffMinutes <= 15;
@@ -447,9 +596,9 @@ export default function Admin() {
                                                     <td className="p-3 text-sm text-gray-300">{duration}</td>
                                                     <td className="p-3">
                                                         <span className={`px-2 py-0.5 text-xs rounded border flex items-center gap-1 w-max ${b.status === 'CONFIRMED' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' :
-                                                                b.status === 'COMPLETED' ? 'bg-blue-500/10 text-blue-400 border-blue-500/20' :
-                                                                    b.status === 'NO_SHOW' ? 'bg-amber-500/10 text-amber-400 border-amber-500/20' :
-                                                                        'bg-red-500/10 text-red-400 border-red-500/20'
+                                                            b.status === 'COMPLETED' ? 'bg-blue-500/10 text-blue-400 border-blue-500/20' :
+                                                                b.status === 'NO_SHOW' ? 'bg-amber-500/10 text-amber-400 border-amber-500/20' :
+                                                                    'bg-red-500/10 text-red-400 border-red-500/20'
                                                             }`}>
                                                             {b.status === 'COMPLETED' && <CheckCircle size={12} />}
                                                             {b.status === 'NO_SHOW' && <UserX size={12} />}
