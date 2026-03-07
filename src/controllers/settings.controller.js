@@ -10,7 +10,7 @@ const getSettings = async (req, res) => {
 
         const closedDates = await prisma.closedDate.findMany({
             orderBy: { date: 'asc' },
-            where: { date: { gte: new Date() } } // Solo trae los feriados futuros o de hoy
+            where: { date: { gte: new Date(new Date().toISOString().split('T')[0] + 'T00:00:00Z') } } // Solo trae los feriados futuros o de hoy
         });
 
         res.status(200).json({ data: { businessHours, closedDates } });
@@ -45,7 +45,7 @@ const addClosedDate = async (req, res) => {
 
         // Verificamos si ya existe ese feriado
         const existingDate = await prisma.closedDate.findUnique({
-            where: { date: new Date(date) }
+            where: { date: new Date(date + 'T12:00:00Z') }
         });
 
         if (existingDate) {
@@ -54,7 +54,7 @@ const addClosedDate = async (req, res) => {
 
         const newClosedDate = await prisma.closedDate.create({
             data: {
-                date: new Date(date),
+                date: new Date(date + 'T12:00:00Z'),
                 reason: reason || 'Cerrado por administración'
             }
         });

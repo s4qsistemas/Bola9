@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import api from '../api';
 import dayjs from 'dayjs';
+import utc from 'dayjs/plugin/utc';
+dayjs.extend(utc);
 import { LogOut, Clock, User, Hash, ExternalLink, Users, Calendar, Ban, CheckCircle, UserX, XCircle, AlertTriangle, Info, ShieldAlert, Settings, Plus, Trash2, Key } from 'lucide-react';
 import bola9Logo from '../assets/logo.svg';
 
@@ -356,7 +358,7 @@ export default function Admin() {
                                         {settings.closedDates.map(date => (
                                             <li key={date.id} className="flex justify-between items-center bg-slate-800 p-3 rounded border border-slate-700">
                                                 <div>
-                                                    <p className="text-sm font-semibold text-red-400">{dayjs(date.date).format('DD/MM/YYYY')}</p>
+                                                    <p className="text-sm font-semibold text-red-400">{dayjs.utc(date.date).format('DD/MM/YYYY')}</p>
                                                     <p className="text-xs text-gray-400">{date.reason}</p>
                                                 </div>
                                                 <button onClick={() => handleDeleteClosedDate(date.id)} className="text-red-500/50 hover:text-red-500 transition-colors p-2" title="Eliminar y Abrir Local">

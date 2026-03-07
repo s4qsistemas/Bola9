@@ -18,7 +18,7 @@ const getAvailability = async (req, res) => {
 
         // 1. Verificar si hay un bloqueo duro (ClosedDate)
         const isClosed = await prisma.closedDate.findFirst({
-            where: { date: targetDate.toDate() }
+            where: { date: new Date(date + 'T12:00:00Z') }
         });
 
         if (isClosed) {
