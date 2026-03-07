@@ -1,8 +1,8 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import api from '../api';
 import dayjs from 'dayjs';
-import { LogIn, LogOut, Calendar, X, Clock, CheckCircle, AlertTriangle, Wrench, Power } from 'lucide-react';
+import { LogIn, LogOut, Calendar, X, Clock, CheckCircle, AlertTriangle, Wrench, Power, ScrollText } from 'lucide-react';
 import bola9Logo from '../assets/logo.svg';
 
 export default function Home() {
@@ -12,6 +12,15 @@ export default function Home() {
     const [user, setUser] = useState(null);
     const [isLoadingTables, setIsLoadingTables] = useState(false);
 
+    // Audio pre-cargado
+    const bookingSoundRef = useRef(null);
+    useEffect(() => {
+        const audio = new Audio('/billiards.wav');
+        audio.preload = 'auto';
+        audio.load();
+        bookingSoundRef.current = audio;
+    }, []);
+
     // Estados del Modal de Reservas
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [selectedTable, setSelectedTable] = useState(null);
@@ -20,6 +29,8 @@ export default function Home() {
     const [isLoadingSlots, setIsLoadingSlots] = useState(false);
     const [bookingMessage, setBookingMessage] = useState(null); // { type: 'success' | 'error', text: '' }
     const [isBookingInProgress, setIsBookingInProgress] = useState(false);
+    const [pendingSlot, setPendingSlot] = useState(null); // Horario seleccionado pendiente de confirmación
+    const [isPoliciesModalOpen, setIsPoliciesModalOpen] = useState(false);
 
     const navigate = useNavigate();
 
@@ -61,6 +72,12 @@ export default function Home() {
 
     // 3. Abrir el modal y consultar disponibilidad
     const handleTableClick = (tableId, tableNumber) => {
+        // Desbloquear audio del navegador con la interacción del usuario
+        if (bookingSoundRef.current) {
+            const s = bookingSoundRef.current;
+            s.volume = 0;
+            s.play().then(() => { s.pause(); s.currentTime = 0; s.volume = 1; }).catch(() => { });
+        }
         setSelectedTable({ id: tableId, number: tableNumber });
         setIsModalOpen(true);
         setBookingMessage(null);
@@ -144,6 +161,12 @@ export default function Home() {
                 startTime: slotTime // Ej: "2026-03-01 20:00"
             });
 
+            // Sonido de confirmación
+            try {
+                bookingSoundRef.current.currentTime = 0;
+                bookingSoundRef.current.play();
+            } catch (_) { }
+
             setBookingMessage({ type: 'success', text: `¡Reserva confirmada para las ${dayjs(slotTime).format('HH:mm')}!` });
 
             // Refrescamos la disponibilidad para que esa hora desaparezca de la lista
@@ -170,6 +193,7 @@ export default function Home() {
         setIsModalOpen(false);
         setSelectedTable(null);
         setBookingMessage(null);
+        setPendingSlot(null);
         setSelectedDate(dayjs().format('YYYY-MM-DD')); // Resetear a hoy
     };
 
@@ -212,6 +236,10 @@ export default function Home() {
                                 <Link to="/mis-reservas" className="text-sm text-emerald-400 hover:underline">Mis Reservas</Link>
                             )}
 
+                            <button onClick={() => setIsPoliciesModalOpen(true)} className="flex items-center gap-1 text-sm text-gray-400 hover:text-white transition-colors">
+                                <ScrollText size={14} /> Políticas
+                            </button>
+
                             <button onClick={handleLogout} className="flex items-center gap-2 text-sm bg-slate-800 hover:bg-red-500/20 hover:text-red-400 px-3 py-2 rounded transition-colors">
                                 <LogOut size={16} /> Salir
                             </button>
@@ -224,11 +252,19 @@ export default function Home() {
                 </div>
             </nav>
 
-            {/* Jumbotron (Mantenido igual) */}
-            <header className="relative bg-slate-800 py-16 md:py-24 px-4 text-center border-b border-slate-700">
+            {/* Jumbotron con Imagen de Fondo y Overlay oscuro */}
+            <header
+                className="relative py-16 md:py-24 px-4 text-center border-b border-slate-700 bg-cover bg-center bg-no-repeat"
+                style={{ backgroundImage: "url('/fondo_jumbotron.png')" }}
+            >
+                {/* La capa oscura (Overlay) que garantiza que el texto siempre se lea */}
+                <div className="absolute inset-0 bg-slate-900/70 z-0"></div>
+
+                {/* El Contenido (Aseguramos que esté por encima del overlay con z-10) */}
                 <div className="relative z-10 max-w-3xl mx-auto">
-                    <h2 className="text-4xl md:text-5xl font-extrabold mb-4">El mejor ambiente, las mejores mesas.</h2>
-                    <p className="text-lg md:text-xl text-gray-400 mb-8">Reserva tu mesa de pool al instante y asegura tu noche con amigos.</p>
+                    <h2 className="text-4xl md:text-5xl font-extrabold mb-4 text-white">El mejor ambiente, las mejores mesas.</h2>
+                    <p className="text-lg md:text-xl text-gray-300 mb-8">Reserva tu mesa de pool al instante y asegura tu noche con amigos.</p>
+
                     {!isLoggedIn && (
                         <Link to="/login" className="inline-block bg-brand-primary text-brand-dark font-bold text-lg px-8 py-3 rounded shadow-lg shadow-brand-primary/20 hover:bg-emerald-400 transition-all transform hover:scale-105">
                             Reserva Ahora
@@ -344,34 +380,109 @@ export default function Home() {
                             )}
 
                             {/* Grid de Horarios Disponibles */}
-                            <div>
-                                <h4 className="text-sm font-medium text-gray-300 mb-3 flex items-center gap-2">
-                                    <Clock size={16} className="text-gray-500" />
-                                    Horarios Libres
-                                </h4>
+                            {!pendingSlot && (
+                                <div>
+                                    <h4 className="text-sm font-medium text-gray-300 mb-3 flex items-center gap-2">
+                                        <Clock size={16} className="text-gray-500" />
+                                        Horarios Libres
+                                    </h4>
 
-                                {isLoadingSlots ? (
-                                    <div className="text-center py-8 text-gray-500">Calculando disponibilidad...</div>
-                                ) : availableSlots.length === 0 ? (
-                                    <div className="text-center py-8 bg-slate-800/50 rounded border border-slate-800 text-gray-400 text-sm">
-                                        No hay horarios disponibles para esta fecha.
-                                    </div>
-                                ) : (
-                                    <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
-                                        {availableSlots.map((slot, index) => (
-                                            <button
-                                                key={index}
-                                                onClick={() => handleBookSlot(slot)}
-                                                disabled={isBookingInProgress}
-                                                className="py-2.5 px-2 text-sm font-semibold bg-slate-800 text-gray-200 border border-slate-700 rounded hover:border-brand-primary hover:text-brand-primary hover:bg-brand-primary/10 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                                            >
-                                                {dayjs(slot).format('HH:mm')}
-                                            </button>
-                                        ))}
-                                    </div>
-                                )}
-                            </div>
+                                    {isLoadingSlots ? (
+                                        <div className="text-center py-8 text-gray-500">Calculando disponibilidad...</div>
+                                    ) : availableSlots.length === 0 ? (
+                                        <div className="text-center py-8 bg-slate-800/50 rounded border border-slate-800 text-gray-400 text-sm">
+                                            No hay horarios disponibles para esta fecha.
+                                        </div>
+                                    ) : (
+                                        <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
+                                            {availableSlots.map((slot, index) => (
+                                                <button
+                                                    key={index}
+                                                    onClick={() => setPendingSlot(slot)}
+                                                    className="py-2.5 px-2 text-sm font-semibold bg-slate-800 text-gray-200 border border-slate-700 rounded hover:border-brand-primary hover:text-brand-primary hover:bg-brand-primary/10 transition-colors"
+                                                >
+                                                    {dayjs(slot).format('HH:mm')}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
+                            )}
 
+                            {/* Paso de Confirmación */}
+                            {pendingSlot && !bookingMessage && (
+                                <div className="bg-slate-800 border border-brand-primary/30 rounded-lg p-5">
+                                    <h4 className="text-sm font-semibold text-brand-primary mb-4 flex items-center gap-2">
+                                        <CheckCircle size={16} /> ¿Confirmar reserva?
+                                    </h4>
+                                    <div className="space-y-2 text-sm text-gray-300 mb-5">
+                                        <p>📅 Fecha: <span className="text-white font-medium">{dayjs(selectedDate).format('DD/MM/YYYY')}</span></p>
+                                        <p>🎱 Mesa: <span className="text-white font-medium">{selectedTable?.number}</span></p>
+                                        <p>🕐 Hora: <span className="text-white font-medium">{dayjs(pendingSlot).format('HH:mm')}</span></p>
+                                    </div>
+                                    <div className="flex gap-3">
+                                        <button
+                                            onClick={() => { handleBookSlot(pendingSlot); }}
+                                            disabled={isBookingInProgress}
+                                            className="flex-1 bg-brand-primary text-brand-dark font-semibold py-2.5 rounded hover:bg-emerald-400 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                        >
+                                            {isBookingInProgress ? 'Reservando...' : 'Confirmar'}
+                                        </button>
+                                        <button
+                                            onClick={() => setPendingSlot(null)}
+                                            disabled={isBookingInProgress}
+                                            className="flex-1 bg-slate-700 text-gray-300 font-medium py-2.5 rounded hover:bg-slate-600 transition-colors disabled:opacity-50"
+                                        >
+                                            Volver
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
+
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* MODAL DE POLÍTICAS DE USO */}
+            {isPoliciesModalOpen && (
+                <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
+                    <div className="bg-slate-900 border border-slate-700 rounded-xl w-full max-w-2xl shadow-2xl flex flex-col max-h-[90vh]">
+
+                        {/* Cabecera del Modal */}
+                        <div className="flex justify-between items-center p-5 border-b border-slate-800">
+                            <h3 className="text-xl font-bold text-brand-primary">Políticas del Club Bola9</h3>
+                            <button onClick={() => setIsPoliciesModalOpen(false)} className="text-gray-400 hover:text-white transition-colors bg-slate-800 p-1.5 rounded-full">
+                                <X size={20} />
+                            </button>
+                        </div>
+
+                        {/* Contenido (Scrollable) */}
+                        <div className="p-6 overflow-y-auto text-sm text-gray-300 space-y-4 font-sans leading-relaxed">
+                            <p>Bienvenidos al sistema de reservas de <strong>Club Bola9</strong>. Al crear una cuenta y reservar una mesa, aceptas cumplir con estas políticas.</p>
+
+                            <h4 className="text-lg font-bold text-white mt-4 border-b border-slate-800 pb-1">1. Asistencia y Puntualidad</h4>
+                            <p>Tu reserva garantiza la mesa para la hora indicada. Te recomendamos llegar con al menos 10 minutos de anticipación. Si te excedes de tu hora sin previo aviso, la mesa podría ser liberada.</p>
+
+                            <h4 className="text-lg font-bold text-white mt-4 border-b border-slate-800 pb-1">2. Cancelaciones ("Strikes")</h4>
+                            <ul className="list-disc pl-5 space-y-2">
+                                <li><strong className="text-emerald-400">Temprana (+2 horas):</strong> Puedes cancelar sin ninguna penalización.</li>
+                                <li><strong className="text-amber-400">Tardía / Strike (-2 horas):</strong> Puedes cancelar, pero el sistema registrará un <strong>"Strike"</strong>. Al acumular 3, tu cuenta será suspendida.</li>
+                                <li><strong className="text-red-400">Bloqueo (-30 minutos):</strong> El sistema no te permitirá cancelar faltando menos de 30 minutos.</li>
+                            </ul>
+
+                            <h4 className="text-lg font-bold text-white mt-4 border-b border-slate-800 pb-1">3. Inasistencias ("No-Shows")</h4>
+                            <p>Un "No-Show" ocurre cuando no cancelas y no te presentas a jugar. Aplicamos <strong>Tolerancia Cero</strong>: Un (1) solo "No-Show" resultará en una <strong className="text-red-500">Tarjeta Roja Directa</strong> y el baneo inmediato de tu cuenta.</p>
+
+                            <h4 className="text-lg font-bold text-white mt-4 border-b border-slate-800 pb-1">4. Redención</h4>
+                            <p>Si tienes Strikes acumulados, cada vez que asistas a jugar a tu hora, el sistema restará automáticamente 1 Strike de tu cuenta como premio a tu responsabilidad.</p>
+                        </div>
+
+                        {/* Pie del Modal */}
+                        <div className="p-4 border-t border-slate-800 flex justify-end bg-slate-900/50 rounded-b-xl">
+                            <button onClick={() => setIsPoliciesModalOpen(false)} className="bg-brand-primary text-brand-dark font-bold px-6 py-2 rounded hover:bg-emerald-400 transition-colors">
+                                Entendido
+                            </button>
                         </div>
                     </div>
                 </div>
