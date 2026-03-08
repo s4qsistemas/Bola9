@@ -53,19 +53,30 @@ async function main() {
     console.log('✅ 6 Mesas de pool configuradas');
 
     // 4. Establecer Horario de Apertura Base (Lunes a Domingo, 18:00 a 02:00)
+    // dayOfWeek: 0=Domingo, 1=Lunes, 2=Martes, 3=Miércoles, 4=Jueves, 5=Viernes, 6=Sábado
+    const defaultPrices = {
+        0: 12000, // Domingo
+        1: 8000,  // Lunes
+        2: 8000,  // Martes
+        3: 8000,  // Miércoles
+        4: 10000, // Jueves
+        5: 12000, // Viernes
+        6: 12000, // Sábado
+    };
     for (let i = 0; i <= 6; i++) {
         await prisma.businessHour.upsert({
             where: { dayOfWeek: i },
-            update: {},
+            update: { pricePerHour: defaultPrices[i] },
             create: {
                 dayOfWeek: i,
                 isOpen: true,
                 openTime: '18:00',
-                closeTime: '02:00'
+                closeTime: '02:00',
+                pricePerHour: defaultPrices[i]
             }
         });
     }
-    console.log('✅ Horarios de negocio base (18:00 a 02:00) establecidos');
+    console.log('✅ Horarios de negocio base (18:00 a 02:00) con precios establecidos');
 }
 
 main()

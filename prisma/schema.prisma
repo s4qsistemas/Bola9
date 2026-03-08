@@ -42,11 +42,12 @@ model PoolTable {
   bookings    Booking[]
 }
 model BusinessHour {
-  id          String   @id @default(uuid())
-  dayOfWeek   Int      @unique
-  isOpen      Boolean  @default(true)
-  openTime    String?  
-  closeTime   String?  
+  id            String   @id @default(uuid())
+  dayOfWeek     Int      @unique
+  isOpen        Boolean  @default(true)
+  openTime      String?  
+  closeTime     String?  
+  pricePerHour  Int      @default(0)
 }
 
 model ClosedDate {

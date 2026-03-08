@@ -24,11 +24,11 @@ const getSettings = async (req, res) => {
 const updateBusinessHour = async (req, res) => {
     try {
         const { dayOfWeek } = req.params;
-        const { isOpen, openTime, closeTime } = req.body;
+        const { isOpen, openTime, closeTime, pricePerHour } = req.body;
 
         const updatedHour = await prisma.businessHour.update({
             where: { dayOfWeek: parseInt(dayOfWeek) },
-            data: { isOpen, openTime, closeTime }
+            data: { isOpen, openTime, closeTime, ...(pricePerHour !== undefined && !isNaN(parseInt(pricePerHour)) && { pricePerHour: parseInt(pricePerHour) }) }
         });
 
         res.status(200).json({ message: 'Horario actualizado exitosamente.', data: updatedHour });

@@ -74,7 +74,8 @@ const getAvailability = async (req, res) => {
         res.status(200).json({
             date,
             tableId,
-            availableSlots
+            availableSlots,
+            pricePerHour: businessHour.pricePerHour || 0
         });
 
     } catch (error) {

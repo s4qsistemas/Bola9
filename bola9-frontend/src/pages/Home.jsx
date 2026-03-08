@@ -26,6 +26,7 @@ export default function Home() {
     const [selectedTable, setSelectedTable] = useState(null);
     const [selectedDate, setSelectedDate] = useState(dayjs().format('YYYY-MM-DD'));
     const [availableSlots, setAvailableSlots] = useState([]);
+    const [pricePerHour, setPricePerHour] = useState(0);
     const [isLoadingSlots, setIsLoadingSlots] = useState(false);
     const [bookingMessage, setBookingMessage] = useState(null); // { type: 'success' | 'error', text: '' }
     const [isBookingInProgress, setIsBookingInProgress] = useState(false);
@@ -93,6 +94,7 @@ export default function Home() {
                 headers: { Authorization: `Bearer ${token}` }
             });
             setAvailableSlots(response.data.availableSlots);
+            setPricePerHour(response.data.pricePerHour || 0);
         } catch (error) {
             console.error('Error consultando disponibilidad:', error);
             setAvailableSlots([]);
@@ -382,10 +384,15 @@ export default function Home() {
                             {/* Grid de Horarios Disponibles */}
                             {!pendingSlot && (
                                 <div>
-                                    <h4 className="text-sm font-medium text-gray-300 mb-3 flex items-center gap-2">
+                                    <h4 className="text-sm font-medium text-gray-300 mb-1 flex items-center gap-2">
                                         <Clock size={16} className="text-gray-500" />
                                         Horarios Libres
                                     </h4>
+                                    {pricePerHour > 0 && !isLoadingSlots && (
+                                        <p className="text-sm text-emerald-400 font-semibold mb-3 flex items-center gap-1">
+                                            💰 Precio por hora: ${pricePerHour.toLocaleString('es-CL')}
+                                        </p>
+                                    )}
 
                                     {isLoadingSlots ? (
                                         <div className="text-center py-8 text-gray-500">Calculando disponibilidad...</div>

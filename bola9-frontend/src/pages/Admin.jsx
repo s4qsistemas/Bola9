@@ -6,7 +6,7 @@ import utc from 'dayjs/plugin/utc';
 import 'dayjs/locale/es';
 dayjs.extend(utc);
 dayjs.locale('es');
-import { LogOut, Clock, User, Hash, ExternalLink, Users, Calendar, Ban, CheckCircle, UserX, XCircle, AlertTriangle, Info, ShieldAlert, Settings, Plus, Trash2, Key, History, ChevronLeft, ChevronRight, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
+import { LogOut, Clock, User, Hash, ExternalLink, Users, Calendar, Ban, CheckCircle, UserX, XCircle, AlertTriangle, Info, ShieldAlert, Settings, Plus, Trash2, Key, History, ChevronLeft, ChevronRight, ArrowUpDown, ArrowUp, ArrowDown, DollarSign } from 'lucide-react';
 import bola9Logo from '../assets/logo.svg';
 
 const DAYS_OF_WEEK = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
@@ -152,9 +152,11 @@ export default function Admin() {
     };
 
     // --- ACTIONS: SETTINGS (NUEVO) ---
-    const handleUpdateHour = async (dayOfWeek, isOpen, openTime, closeTime) => {
+    const handleUpdateHour = async (dayOfWeek, isOpen, openTime, closeTime, pricePerHour) => {
         try {
-            await api.patch(`/api/admin/settings/hours/${dayOfWeek}`, { isOpen, openTime, closeTime }, getHeaders());
+            const payload = { isOpen, openTime, closeTime };
+            if (pricePerHour !== undefined) payload.pricePerHour = pricePerHour;
+            await api.patch(`/api/admin/settings/hours/${dayOfWeek}`, payload, getHeaders());
             alert('Horario actualizado.');
             fetchSettings();
         } catch (err) { alert('Error actualizando horario.'); }
@@ -483,16 +485,26 @@ export default function Admin() {
                             {isLoadingSettings ? <p className="text-gray-500">Cargando...</p> : (
                                 <div className="space-y-4">
                                     {settings.businessHours.map((bh) => (
-                                        <div key={bh.id} className="flex flex-col sm:flex-row items-center justify-between gap-4 p-4 bg-slate-800 rounded border border-slate-700">
-                                            <div className="flex items-center gap-3 w-full sm:w-1/3">
+                                        <div key={bh.id} className="flex items-center gap-4 p-3 bg-slate-800 rounded border border-slate-700">
+                                            <div className="flex items-center gap-3 w-28 shrink-0">
                                                 <input type="checkbox" checked={bh.isOpen} onChange={(e) => handleUpdateHour(bh.dayOfWeek, e.target.checked, bh.openTime, bh.closeTime)} className="w-4 h-4 accent-brand-primary" />
-                                                <span className={`font-semibold ${bh.isOpen ? 'text-gray-200' : 'text-gray-500 line-through'}`}>{DAYS_OF_WEEK[bh.dayOfWeek]}</span>
+                                                <span className={`font-semibold text-sm ${bh.isOpen ? 'text-gray-200' : 'text-gray-500 line-through'}`}>{DAYS_OF_WEEK[bh.dayOfWeek]}</span>
                                             </div>
 
                                             {bh.isOpen ? (
-                                                <div className="flex items-center gap-2 w-full sm:w-auto">
+                                                <div className="flex items-center gap-2 flex-1">
+                                                    <DollarSign size={14} className="text-emerald-400 shrink-0" />
+                                                    <input
+                                                        type="number"
+                                                        defaultValue={bh.pricePerHour}
+                                                        min="0"
+                                                        step="1000"
+                                                        onBlur={(e) => handleUpdateHour(bh.dayOfWeek, bh.isOpen, bh.openTime, bh.closeTime, parseInt(e.target.value))}
+                                                        className="bg-slate-900 border border-slate-600 rounded text-sm p-1.5 focus:border-brand-primary text-gray-200 w-20"
+                                                    />
+                                                    <span className="text-gray-600 mx-1">|</span>
                                                     <input type="time" defaultValue={bh.openTime} onBlur={(e) => handleUpdateHour(bh.dayOfWeek, bh.isOpen, e.target.value, bh.closeTime)} className="bg-slate-900 border border-slate-600 rounded text-sm p-1.5 focus:border-brand-primary text-gray-200" />
-                                                    <span className="text-gray-500">a</span>
+                                                    <span className="text-gray-500 text-xs">a</span>
                                                     <input type="time" defaultValue={bh.closeTime} onBlur={(e) => handleUpdateHour(bh.dayOfWeek, bh.isOpen, bh.openTime, e.target.value)} className="bg-slate-900 border border-slate-600 rounded text-sm p-1.5 focus:border-brand-primary text-gray-200" />
                                                 </div>
                                             ) : (
@@ -544,89 +556,92 @@ export default function Admin() {
                         </div>
 
                     </div>
-                )}
+                )
+                }
 
-            </main>
+            </main >
 
             {/* --- MODAL: HISTORIAL DE RESERVAS --- */}
-            {historyModal.open && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4" onClick={() => setHistoryModal({ open: false, userName: '', bookings: [], loading: false })}>
-                    <div className="bg-slate-900 border border-slate-700 rounded-xl shadow-2xl w-full max-w-3xl max-h-[80vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
-                        {/* Header */}
-                        <div className="flex items-center justify-between p-6 border-b border-slate-800">
-                            <div className="flex items-center gap-3">
-                                <History className="text-blue-400" size={22} />
-                                <h2 className="text-lg font-bold text-white">Historial de Reservas</h2>
-                                <span className="text-sm text-brand-primary font-medium">— {historyModal.userName}</span>
+            {
+                historyModal.open && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4" onClick={() => setHistoryModal({ open: false, userName: '', bookings: [], loading: false })}>
+                        <div className="bg-slate-900 border border-slate-700 rounded-xl shadow-2xl w-full max-w-3xl max-h-[80vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
+                            {/* Header */}
+                            <div className="flex items-center justify-between p-6 border-b border-slate-800">
+                                <div className="flex items-center gap-3">
+                                    <History className="text-blue-400" size={22} />
+                                    <h2 className="text-lg font-bold text-white">Historial de Reservas</h2>
+                                    <span className="text-sm text-brand-primary font-medium">— {historyModal.userName}</span>
+                                </div>
+                                <button onClick={() => setHistoryModal({ open: false, userName: '', bookings: [], loading: false })} className="text-gray-400 hover:text-white transition-colors p-1">
+                                    <XCircle size={22} />
+                                </button>
                             </div>
-                            <button onClick={() => setHistoryModal({ open: false, userName: '', bookings: [], loading: false })} className="text-gray-400 hover:text-white transition-colors p-1">
-                                <XCircle size={22} />
-                            </button>
-                        </div>
 
-                        {/* Body */}
-                        <div className="overflow-y-auto flex-1 p-6">
-                            {historyModal.loading ? (
-                                <div className="text-center text-gray-400 py-10">Cargando historial...</div>
-                            ) : historyModal.bookings.length === 0 ? (
-                                <div className="text-center text-gray-500 py-10">Sin reservas registradas para este cliente.</div>
-                            ) : (
-                                <table className="w-full text-left border-collapse">
-                                    <thead>
-                                        <tr className="bg-slate-800 text-gray-400 text-sm border-b border-slate-700">
-                                            <th className="p-3 font-medium">Fecha</th>
-                                            <th className="p-3 font-medium">Mesa</th>
-                                            <th className="p-3 font-medium">Duración</th>
-                                            <th className="p-3 font-medium">Estado</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody className="divide-y divide-slate-800">
-                                        {historyModal.bookings.map((b) => {
-                                            const start = dayjs(b.startTime);
-                                            const end = dayjs(b.endTime);
-                                            const diffMin = end.diff(start, 'minute');
-                                            const hours = Math.floor(diffMin / 60);
-                                            const mins = diffMin % 60;
-                                            const duration = hours > 0 ? `${hours}h ${mins}min` : `${mins}min`;
+                            {/* Body */}
+                            <div className="overflow-y-auto flex-1 p-6">
+                                {historyModal.loading ? (
+                                    <div className="text-center text-gray-400 py-10">Cargando historial...</div>
+                                ) : historyModal.bookings.length === 0 ? (
+                                    <div className="text-center text-gray-500 py-10">Sin reservas registradas para este cliente.</div>
+                                ) : (
+                                    <table className="w-full text-left border-collapse">
+                                        <thead>
+                                            <tr className="bg-slate-800 text-gray-400 text-sm border-b border-slate-700">
+                                                <th className="p-3 font-medium">Fecha</th>
+                                                <th className="p-3 font-medium">Mesa</th>
+                                                <th className="p-3 font-medium">Duración</th>
+                                                <th className="p-3 font-medium">Estado</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody className="divide-y divide-slate-800">
+                                            {historyModal.bookings.map((b) => {
+                                                const start = dayjs(b.startTime);
+                                                const end = dayjs(b.endTime);
+                                                const diffMin = end.diff(start, 'minute');
+                                                const hours = Math.floor(diffMin / 60);
+                                                const mins = diffMin % 60;
+                                                const duration = hours > 0 ? `${hours}h ${mins}min` : `${mins}min`;
 
-                                            return (
-                                                <tr key={b.id} className="hover:bg-slate-800/50 transition-colors">
-                                                    <td className="p-3 text-sm text-gray-200">{start.format('DD/MM/YYYY HH:mm')}</td>
-                                                    <td className="p-3 text-sm text-gray-300">Mesa {b.table.number}</td>
-                                                    <td className="p-3 text-sm text-gray-300">{duration}</td>
-                                                    <td className="p-3">
-                                                        <span className={`px-2 py-0.5 text-xs rounded border flex items-center gap-1 w-max ${b.status === 'CONFIRMED' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' :
-                                                            b.status === 'COMPLETED' ? 'bg-blue-500/10 text-blue-400 border-blue-500/20' :
-                                                                b.status === 'NO_SHOW' ? 'bg-amber-500/10 text-amber-400 border-amber-500/20' :
-                                                                    'bg-red-500/10 text-red-400 border-red-500/20'
-                                                            }`}>
-                                                            {b.status === 'COMPLETED' && <CheckCircle size={12} />}
-                                                            {b.status === 'NO_SHOW' && <UserX size={12} />}
-                                                            {b.status === 'CANCELLED' && <XCircle size={12} />}
-                                                            {b.status === 'CONFIRMED' && <Clock size={12} />}
-                                                            {b.status === 'CONFIRMED' ? 'Confirmada' :
-                                                                b.status === 'COMPLETED' ? 'Completada' :
-                                                                    b.status === 'NO_SHOW' ? 'No-Show' : 'Cancelada'}
-                                                        </span>
-                                                    </td>
-                                                </tr>
-                                            );
-                                        })}
-                                    </tbody>
-                                </table>
+                                                return (
+                                                    <tr key={b.id} className="hover:bg-slate-800/50 transition-colors">
+                                                        <td className="p-3 text-sm text-gray-200">{start.format('DD/MM/YYYY HH:mm')}</td>
+                                                        <td className="p-3 text-sm text-gray-300">Mesa {b.table.number}</td>
+                                                        <td className="p-3 text-sm text-gray-300">{duration}</td>
+                                                        <td className="p-3">
+                                                            <span className={`px-2 py-0.5 text-xs rounded border flex items-center gap-1 w-max ${b.status === 'CONFIRMED' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' :
+                                                                b.status === 'COMPLETED' ? 'bg-blue-500/10 text-blue-400 border-blue-500/20' :
+                                                                    b.status === 'NO_SHOW' ? 'bg-amber-500/10 text-amber-400 border-amber-500/20' :
+                                                                        'bg-red-500/10 text-red-400 border-red-500/20'
+                                                                }`}>
+                                                                {b.status === 'COMPLETED' && <CheckCircle size={12} />}
+                                                                {b.status === 'NO_SHOW' && <UserX size={12} />}
+                                                                {b.status === 'CANCELLED' && <XCircle size={12} />}
+                                                                {b.status === 'CONFIRMED' && <Clock size={12} />}
+                                                                {b.status === 'CONFIRMED' ? 'Confirmada' :
+                                                                    b.status === 'COMPLETED' ? 'Completada' :
+                                                                        b.status === 'NO_SHOW' ? 'No-Show' : 'Cancelada'}
+                                                            </span>
+                                                        </td>
+                                                    </tr>
+                                                );
+                                            })}
+                                        </tbody>
+                                    </table>
+                                )}
+                            </div>
+
+                            {/* Footer */}
+                            {!historyModal.loading && historyModal.bookings.length > 0 && (
+                                <div className="border-t border-slate-800 px-6 py-3 text-xs text-gray-500 text-right">
+                                    {historyModal.bookings.length} reserva{historyModal.bookings.length !== 1 ? 's' : ''} en total
+                                </div>
                             )}
                         </div>
-
-                        {/* Footer */}
-                        {!historyModal.loading && historyModal.bookings.length > 0 && (
-                            <div className="border-t border-slate-800 px-6 py-3 text-xs text-gray-500 text-right">
-                                {historyModal.bookings.length} reserva{historyModal.bookings.length !== 1 ? 's' : ''} en total
-                            </div>
-                        )}
                     </div>
-                </div>
-            )}
+                )
+            }
 
-        </div>
+        </div >
     );
 }
