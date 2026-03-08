@@ -82,7 +82,7 @@ export default function Home() {
                         title: data.title !== null ? data.title : 'El mejor ambiente, las mejores mesas.',
                         subtitle: data.subtitle !== null ? data.subtitle : 'Reserva tu mesa de pool al instante y asegura tu noche con amigos.',
                         imageUrl: data.imageUrl
-                            ? `${import.meta.env.VITE_API_URL || 'http://localhost:3000'}${data.imageUrl}`
+                            ? `${import.meta.env.VITE_API_URL || ''}${data.imageUrl}`
                             : '/fondo_jumbotron.png'
                     });
                 }

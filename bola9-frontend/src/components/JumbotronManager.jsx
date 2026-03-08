@@ -24,7 +24,7 @@ const JumbotronManager = () => {
                 setTitle(response.data.title || '');
                 setSubtitle(response.data.subtitle || '');
                 // Si hay URL, le concatenamos la URL base de tu backend para que React la encuentre
-                setCurrentImage(response.data.imageUrl ? `${import.meta.env.VITE_API_URL || 'http://localhost:3000'}${response.data.imageUrl}` : null);
+                setCurrentImage(response.data.imageUrl ? `${import.meta.env.VITE_API_URL || ''}${response.data.imageUrl}` : null);
             }
         } catch (error) {
             console.error('Error al cargar datos del Jumbotron', error);

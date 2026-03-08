@@ -10,12 +10,12 @@ const PORT = process.env.PORT || 3000;
 
 // Middlewares globales
 app.use(helmet({
-    crossOriginResourcePolicy: { policy: "cross-origin" } // VITAL: Permite que React cargue las imágenes de la carpeta uploads
+    crossOriginResourcePolicy: { policy: "cross-origin" }
 }));
-app.use(cors()); // Permite peticiones desde tu futuro frontend en React
-app.use(express.json()); // Permite a Express entender JSON en el body de las peticiones
-app.use(morgan('dev')); // Loguea las peticiones en la consola para depurar fácilmente
-app.use('/uploads', express.static(path.join(__dirname, '../uploads'))); // Permite que la carpeta uploads sea accesible desde el navegador
+app.use(cors());
+app.use(express.json());
+app.use(morgan('dev'));
+app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 
 
 // --- IMPORTAR RUTAS ---
@@ -41,5 +41,5 @@ app.get('/api/health', (req, res) => {
 
 // Levantar el servidor
 app.listen(PORT, () => {
-    console.log(`🚀 Servidor Bola9 corriendo en http://localhost:${PORT}`);
+    console.log(`🚀 Servidor Bola9 corriendo en el puerto ${PORT} - Entorno: ${process.env.NODE_ENV || 'desarrollo'}`);
 });
