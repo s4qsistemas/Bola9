@@ -34,32 +34,28 @@ router.get('/', async (req, res) => {
 });
 
 // 3. POST: Para que el Admin guarde los nuevos cambios
-// El middleware 'upload.single("image")' intercepta la foto antes de llegar a tu código
 router.post('/', upload.single('image'), async (req, res) => {
     try {
-        // Extraemos los textos del formulario (pueden venir vacíos, eso está bien)
-        const { title, subtitle } = req.body;
+        const { title, subtitle, removeImage } = req.body;
 
-        // Preparamos los datos a actualizar
         const updateData = {
             title: title || '',
             subtitle: subtitle || '',
         };
 
-        // Si el admin subió una foto nueva, guardamos la nueva ruta
+        // Si el admin subió una foto nueva
         if (req.file) {
-            // Guardamos la ruta relativa para que el frontend la consuma
             updateData.imageUrl = `/uploads/${req.file.filename}`;
         }
+        // NUEVA LÓGICA: Si el admin apretó el botón de "quitar imagen"
+        else if (removeImage === 'true') {
+            updateData.imageUrl = null; // Esto activará el salvavidas en el frontend
+        }
 
-        // Usamos upsert: Si el ID 1 existe, lo actualiza. Si no existe, lo crea.
         const updatedSettings = await prisma.jumbotronSettings.upsert({
             where: { id: 1 },
             update: updateData,
-            create: {
-                id: 1,
-                ...updateData
-            }
+            create: { id: 1, ...updateData }
         });
 
         res.json(updatedSettings);

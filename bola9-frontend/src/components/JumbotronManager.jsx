@@ -23,8 +23,12 @@ const JumbotronManager = () => {
             if (response.data) {
                 setTitle(response.data.title || '');
                 setSubtitle(response.data.subtitle || '');
-                // Si hay URL, le concatenamos la URL base de tu backend para que React la encuentre
-                setCurrentImage(response.data.imageUrl ? `${import.meta.env.VITE_API_URL || ''}${response.data.imageUrl}` : null);
+
+                // LÓGICA LIMPIA:
+                // En Dev (VITE_API_URL=''): '' + '/uploads/foto.png' -> '/uploads/foto.png' (El proxy lo atrapa)
+                // En Prod (VITE_API_URL='https://api.clubbola9.cl'): 'https://...' + '/uploads/foto.png'
+                const baseUrl = import.meta.env.VITE_API_URL || '';
+                setCurrentImage(response.data.imageUrl ? `${baseUrl}${response.data.imageUrl}` : null);
             }
         } catch (error) {
             console.error('Error al cargar datos del Jumbotron', error);
@@ -56,6 +60,9 @@ const JumbotronManager = () => {
             // Si el admin eligió una foto nueva, la adjuntamos a la caja
             if (selectedFile) {
                 formData.append('image', selectedFile);
+            } else if (!currentImage && !previewUrl) {
+                // Si no hay archivo nuevo, y tampoco hay imagen actual (el admin la borró)
+                formData.append('removeImage', 'true');
             }
 
             // Enviamos la caja. Axios es suficientemente inteligente para configurar los headers multipart/form-data automáticamente
@@ -136,13 +143,25 @@ const JumbotronManager = () => {
 
                     {/* Previsualización visual para el Admin */}
                     {(previewUrl || currentImage) && (
-                        <div className="mt-4 border border-slate-600 rounded p-2 bg-slate-900 inline-block">
-                            <p className="text-xs text-slate-400 mb-2">Previsualización:</p>
+                        <div className="mt-4 border border-slate-600 rounded p-4 bg-slate-900 inline-block relative">
+                            <p className="text-xs text-slate-400 mb-2">Imagen Actual:</p>
                             <img
                                 src={previewUrl || currentImage}
                                 alt="Previsualización Jumbotron"
                                 className="h-48 w-auto object-cover rounded"
                             />
+                            {/* EL BOTÓN DE LIMPIEZA */}
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    setPreviewUrl(null);
+                                    setCurrentImage(null);
+                                    setSelectedFile(null);
+                                }}
+                                className="mt-3 text-xs bg-red-500/20 text-red-400 px-3 py-1.5 rounded border border-red-500/30 hover:bg-red-500 hover:text-white transition-colors"
+                            >
+                                Quitar Imagen (Usar Original)
+                            </button>
                         </div>
                     )}
                 </div>

@@ -78,11 +78,15 @@ export default function Home() {
                 const data = response.data;
 
                 if (data) {
+                    const baseUrl = import.meta.env.VITE_API_URL || '';
+
                     setJumbotron({
                         title: data.title !== null ? data.title : 'El mejor ambiente, las mejores mesas.',
                         subtitle: data.subtitle !== null ? data.subtitle : 'Reserva tu mesa de pool al instante y asegura tu noche con amigos.',
+
+                        // LÓGICA LIMPIA AL IGUAL QUE EN EL ADMIN
                         imageUrl: data.imageUrl
-                            ? `${import.meta.env.VITE_API_URL || ''}${data.imageUrl}`
+                            ? `${baseUrl}${data.imageUrl}`
                             : '/fondo_jumbotron.png'
                     });
                 }
