@@ -8,6 +8,7 @@ dayjs.extend(utc);
 dayjs.locale('es');
 import { LogOut, Clock, User, Hash, ExternalLink, Users, Calendar, Ban, CheckCircle, UserX, XCircle, AlertTriangle, Info, ShieldAlert, Settings, Plus, Trash2, Key, History, ChevronLeft, ChevronRight, ArrowUpDown, ArrowUp, ArrowDown, DollarSign } from 'lucide-react';
 import bola9Logo from '../assets/logo.svg';
+import JumbotronManager from '../components/JumbotronManager'
 
 const DAYS_OF_WEEK = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
 
@@ -475,89 +476,95 @@ export default function Admin() {
 
                 {/* --- PESTAÑA 3: CONFIGURACIÓN (NUEVA) --- */}
                 {activeTab === 'settings' && (
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                    <div className="space-y-8">
 
-                        {/* Panel de Horarios Regulares */}
-                        <div className="bg-slate-900 rounded-xl border border-slate-800 overflow-hidden shadow-lg p-6">
-                            <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2"><Clock className="text-brand-primary" /> Horario Habitual</h3>
-                            <p className="text-sm text-gray-400 mb-6">Define los horarios de apertura y cierre para cada día de la semana.</p>
+                        {/* 1. Módulo del Jumbotron (Ancho completo arriba) */}
+                        <JumbotronManager />
 
-                            {isLoadingSettings ? <p className="text-gray-500">Cargando...</p> : (
-                                <div className="space-y-4">
-                                    {settings.businessHours.map((bh) => (
-                                        <div key={bh.id} className="flex items-center gap-4 p-3 bg-slate-800 rounded border border-slate-700">
-                                            <div className="flex items-center gap-3 w-28 shrink-0">
-                                                <input type="checkbox" checked={bh.isOpen} onChange={(e) => handleUpdateHour(bh.dayOfWeek, e.target.checked, bh.openTime, bh.closeTime)} className="w-4 h-4 accent-brand-primary" />
-                                                <span className={`font-semibold text-sm ${bh.isOpen ? 'text-gray-200' : 'text-gray-500 line-through'}`}>{DAYS_OF_WEEK[bh.dayOfWeek]}</span>
+                        {/* 2. Grid de Horarios y Feriados (2 columnas) */}
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+
+                            {/* Panel de Horarios Regulares (Se mantiene igual) */}
+                            <div className="bg-slate-900 rounded-xl border border-slate-800 overflow-hidden shadow-lg p-6">
+                                <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2"><Clock className="text-brand-primary" /> Horario Habitual</h3>
+                                <p className="text-sm text-gray-400 mb-6">Define los horarios de apertura y cierre para cada día de la semana.</p>
+
+                                {isLoadingSettings ? <p className="text-gray-500">Cargando...</p> : (
+                                    <div className="space-y-4">
+                                        {settings.businessHours.map((bh) => (
+                                            <div key={bh.id} className="flex items-center gap-4 p-3 bg-slate-800 rounded border border-slate-700">
+                                                <div className="flex items-center gap-3 w-28 shrink-0">
+                                                    <input type="checkbox" checked={bh.isOpen} onChange={(e) => handleUpdateHour(bh.dayOfWeek, e.target.checked, bh.openTime, bh.closeTime)} className="w-4 h-4 accent-brand-primary" />
+                                                    <span className={`font-semibold text-sm ${bh.isOpen ? 'text-gray-200' : 'text-gray-500 line-through'}`}>{DAYS_OF_WEEK[bh.dayOfWeek]}</span>
+                                                </div>
+
+                                                {bh.isOpen ? (
+                                                    <div className="flex items-center gap-2 flex-1">
+                                                        <DollarSign size={14} className="text-emerald-400 shrink-0" />
+                                                        <input
+                                                            type="number"
+                                                            defaultValue={bh.pricePerHour}
+                                                            min="0"
+                                                            step="1000"
+                                                            onBlur={(e) => handleUpdateHour(bh.dayOfWeek, bh.isOpen, bh.openTime, bh.closeTime, parseInt(e.target.value))}
+                                                            className="bg-slate-900 border border-slate-600 rounded text-sm p-1.5 focus:border-brand-primary text-gray-200 w-20"
+                                                        />
+                                                        <span className="text-gray-600 mx-1">|</span>
+                                                        <input type="time" defaultValue={bh.openTime} onBlur={(e) => handleUpdateHour(bh.dayOfWeek, bh.isOpen, e.target.value, bh.closeTime)} className="bg-slate-900 border border-slate-600 rounded text-sm p-1.5 focus:border-brand-primary text-gray-200" />
+                                                        <span className="text-gray-500 text-xs">a</span>
+                                                        <input type="time" defaultValue={bh.closeTime} onBlur={(e) => handleUpdateHour(bh.dayOfWeek, bh.isOpen, bh.openTime, e.target.value)} className="bg-slate-900 border border-slate-600 rounded text-sm p-1.5 focus:border-brand-primary text-gray-200" />
+                                                    </div>
+                                                ) : (
+                                                    <span className="text-sm text-red-400 font-medium">Cerrado</span>
+                                                )}
                                             </div>
-
-                                            {bh.isOpen ? (
-                                                <div className="flex items-center gap-2 flex-1">
-                                                    <DollarSign size={14} className="text-emerald-400 shrink-0" />
-                                                    <input
-                                                        type="number"
-                                                        defaultValue={bh.pricePerHour}
-                                                        min="0"
-                                                        step="1000"
-                                                        onBlur={(e) => handleUpdateHour(bh.dayOfWeek, bh.isOpen, bh.openTime, bh.closeTime, parseInt(e.target.value))}
-                                                        className="bg-slate-900 border border-slate-600 rounded text-sm p-1.5 focus:border-brand-primary text-gray-200 w-20"
-                                                    />
-                                                    <span className="text-gray-600 mx-1">|</span>
-                                                    <input type="time" defaultValue={bh.openTime} onBlur={(e) => handleUpdateHour(bh.dayOfWeek, bh.isOpen, e.target.value, bh.closeTime)} className="bg-slate-900 border border-slate-600 rounded text-sm p-1.5 focus:border-brand-primary text-gray-200" />
-                                                    <span className="text-gray-500 text-xs">a</span>
-                                                    <input type="time" defaultValue={bh.closeTime} onBlur={(e) => handleUpdateHour(bh.dayOfWeek, bh.isOpen, bh.openTime, e.target.value)} className="bg-slate-900 border border-slate-600 rounded text-sm p-1.5 focus:border-brand-primary text-gray-200" />
-                                                </div>
-                                            ) : (
-                                                <span className="text-sm text-red-400 font-medium">Cerrado</span>
-                                            )}
-                                        </div>
-                                    ))}
-                                </div>
-                            )}
-                        </div>
-
-                        {/* Panel de Feriados Excepcionales */}
-                        <div className="bg-slate-900 rounded-xl border border-slate-800 overflow-hidden shadow-lg p-6">
-                            <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2"><Ban className="text-red-500" /> Feriados y Cierres</h3>
-                            <p className="text-sm text-gray-400 mb-6">Agrega fechas específicas donde el local NO abrirá (ej. Feriados irrenunciables).</p>
-
-                            {/* Formulario Agregar */}
-                            <form onSubmit={handleAddClosedDate} className="flex flex-col gap-3 mb-8 bg-slate-800/50 p-4 rounded border border-slate-700">
-                                <div className="flex flex-col sm:flex-row gap-3">
-                                    <input type="date" required value={newClosedDate} min={dayjs().format('YYYY-MM-DD')} onChange={(e) => setNewClosedDate(e.target.value)} className="bg-slate-900 border border-slate-600 rounded text-sm p-2 w-full sm:w-1/3 text-gray-200 focus:outline-none focus:border-brand-primary" />
-                                    <input type="text" required placeholder="Motivo (ej: Año Nuevo)" value={newClosedReason} onChange={(e) => setNewClosedReason(e.target.value)} className="bg-slate-900 border border-slate-600 rounded text-sm p-2 w-full text-gray-200 focus:outline-none focus:border-brand-primary" />
-                                </div>
-                                <button type="submit" className="bg-brand-primary text-brand-dark font-semibold py-2 rounded flex justify-center items-center gap-2 hover:bg-emerald-400 transition-colors">
-                                    <Plus size={16} /> Agregar Fecha de Cierre
-                                </button>
-                            </form>
-
-                            {/* Lista de Feriados */}
-                            <div>
-                                <h4 className="text-sm font-semibold text-gray-300 mb-3 border-b border-slate-800 pb-2">Próximos Cierres Registrados</h4>
-                                {isLoadingSettings ? <p className="text-gray-500">Cargando...</p> : settings.closedDates.length === 0 ? (
-                                    <p className="text-sm text-gray-500 italic">No hay cierres programados.</p>
-                                ) : (
-                                    <ul className="space-y-2">
-                                        {settings.closedDates.map(date => (
-                                            <li key={date.id} className="flex justify-between items-center bg-slate-800 p-3 rounded border border-slate-700">
-                                                <div>
-                                                    <p className="text-sm font-semibold text-red-400">{dayjs.utc(date.date).format('DD/MM/YYYY')}</p>
-                                                    <p className="text-xs text-gray-400">{date.reason}</p>
-                                                </div>
-                                                <button onClick={() => handleDeleteClosedDate(date.id)} className="text-red-500/50 hover:text-red-500 transition-colors p-2" title="Eliminar y Abrir Local">
-                                                    <Trash2 size={18} />
-                                                </button>
-                                            </li>
                                         ))}
-                                    </ul>
+                                    </div>
                                 )}
                             </div>
-                        </div>
 
+                            {/* Panel de Feriados Excepcionales (Se mantiene igual) */}
+                            <div className="bg-slate-900 rounded-xl border border-slate-800 overflow-hidden shadow-lg p-6">
+                                <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2"><Ban className="text-red-500" /> Feriados y Cierres</h3>
+                                <p className="text-sm text-gray-400 mb-6">Agrega fechas específicas donde el local NO abrirá (ej. Feriados irrenunciables).</p>
+
+                                {/* Formulario Agregar */}
+                                <form onSubmit={handleAddClosedDate} className="flex flex-col gap-3 mb-8 bg-slate-800/50 p-4 rounded border border-slate-700">
+                                    <div className="flex flex-col sm:flex-row gap-3">
+                                        <input type="date" required value={newClosedDate} min={dayjs().format('YYYY-MM-DD')} onChange={(e) => setNewClosedDate(e.target.value)} className="bg-slate-900 border border-slate-600 rounded text-sm p-2 w-full sm:w-1/3 text-gray-200 focus:outline-none focus:border-brand-primary" />
+                                        <input type="text" required placeholder="Motivo (ej: Año Nuevo)" value={newClosedReason} onChange={(e) => setNewClosedReason(e.target.value)} className="bg-slate-900 border border-slate-600 rounded text-sm p-2 w-full text-gray-200 focus:outline-none focus:border-brand-primary" />
+                                    </div>
+                                    <button type="submit" className="bg-brand-primary text-brand-dark font-semibold py-2 rounded flex justify-center items-center gap-2 hover:bg-emerald-400 transition-colors">
+                                        <Plus size={16} /> Agregar Fecha de Cierre
+                                    </button>
+                                </form>
+
+                                {/* Lista de Feriados */}
+                                <div>
+                                    <h4 className="text-sm font-semibold text-gray-300 mb-3 border-b border-slate-800 pb-2">Próximos Cierres Registrados</h4>
+                                    {isLoadingSettings ? <p className="text-gray-500">Cargando...</p> : settings.closedDates.length === 0 ? (
+                                        <p className="text-sm text-gray-500 italic">No hay cierres programados.</p>
+                                    ) : (
+                                        <ul className="space-y-2">
+                                            {settings.closedDates.map(date => (
+                                                <li key={date.id} className="flex justify-between items-center bg-slate-800 p-3 rounded border border-slate-700">
+                                                    <div>
+                                                        <p className="text-sm font-semibold text-red-400">{dayjs.utc(date.date).format('DD/MM/YYYY')}</p>
+                                                        <p className="text-xs text-gray-400">{date.reason}</p>
+                                                    </div>
+                                                    <button onClick={() => handleDeleteClosedDate(date.id)} className="text-red-500/50 hover:text-red-500 transition-colors p-2" title="Eliminar y Abrir Local">
+                                                        <Trash2 size={18} />
+                                                    </button>
+                                                </li>
+                                            ))}
+                                        </ul>
+                                    )}
+                                </div>
+                            </div>
+
+                        </div>
                     </div>
-                )
-                }
+                )}
 
             </main >
 

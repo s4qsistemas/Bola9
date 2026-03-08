@@ -63,6 +63,37 @@ export default function Home() {
         }
     };
 
+    // --- ESTADO DEL JUMBOTRON DINÁMICO ---
+    const [jumbotron, setJumbotron] = useState({
+        title: 'El mejor ambiente, las mejores mesas.',
+        subtitle: 'Reserva tu mesa de pool al instante y asegura tu noche con amigos.',
+        imageUrl: '/fondo_jumbotron.png' // La imagen por defecto en caso de fallo
+    });
+
+    // Cargar Jumbotron al montar la página
+    useEffect(() => {
+        const fetchJumbotron = async () => {
+            try {
+                const response = await api.get('/api/jumbotron');
+                const data = response.data;
+
+                if (data) {
+                    setJumbotron({
+                        title: data.title !== null ? data.title : 'El mejor ambiente, las mejores mesas.',
+                        subtitle: data.subtitle !== null ? data.subtitle : 'Reserva tu mesa de pool al instante y asegura tu noche con amigos.',
+                        imageUrl: data.imageUrl
+                            ? `${import.meta.env.VITE_API_URL || 'http://localhost:3000'}${data.imageUrl}`
+                            : '/fondo_jumbotron.png'
+                    });
+                }
+            } catch (error) {
+                console.error("No se pudo cargar el jumbotron dinámico, usando el por defecto.", error);
+            }
+        };
+
+        fetchJumbotron();
+    }, []);
+
     const handleLogout = () => {
         localStorage.clear();
         setIsLoggedIn(false);
@@ -117,39 +148,6 @@ export default function Home() {
             setAvailableSlots([]);
         }
     };
-
-    /*
-        // 6. Ejecutar la reserva (El momento crítico)
-        const handleBookSlot = async (slotTime) => {
-            setIsBookingInProgress(true);
-            setBookingMessage(null);
-    
-            try {
-                const token = localStorage.getItem('bola9_token');
-                await api.post('/api/bookings', {
-                    tableId: selectedTable.id,
-                    startTime: slotTime // Ej: "2026-03-01 20:00"
-                }, {
-                    headers: { Authorization: `Bearer ${token}` }
-                });
-    
-                setBookingMessage({ type: 'success', text: `¡Reserva confirmada para las ${dayjs(slotTime).format('HH:mm')}!` });
-                // Refrescamos la disponibilidad para que esa hora desaparezca de la lista
-                fetchAvailability(selectedTable.id, selectedDate);
-    
-            } catch (error) {
-                if (error.response?.status === 409) {
-                    // Alguien nos ganó la mesa en el mismo milisegundo
-                    setBookingMessage({ type: 'error', text: 'Ese horario acaba de ser reservado por alguien más. Elige otro.' });
-                    fetchAvailability(selectedTable.id, selectedDate);
-                } else {
-                    setBookingMessage({ type: 'error', text: 'Ocurrió un error al intentar reservar.' });
-                }
-            } finally {
-                setIsBookingInProgress(false);
-            }
-        };
-    */
 
     // 6. Ejecutar la reserva (El momento crítico)
     const handleBookSlot = async (slotTime) => {
@@ -254,21 +252,32 @@ export default function Home() {
                 </div>
             </nav>
 
-            {/* Jumbotron con Imagen de Fondo y Overlay oscuro */}
+            {/* Jumbotron Dinámico */}
             <header
-                className="relative py-16 md:py-24 px-4 text-center border-b border-slate-700 bg-cover bg-center bg-no-repeat"
-                style={{ backgroundImage: "url('/fondo_jumbotron.png')" }}
+                className="relative py-16 md:py-24 px-4 text-center border-b border-slate-700 bg-cover bg-center bg-no-repeat transition-all duration-500"
+                style={{ backgroundImage: `url('${jumbotron.imageUrl}')` }}
             >
                 {/* La capa oscura (Overlay) que garantiza que el texto siempre se lea */}
                 <div className="absolute inset-0 bg-slate-900/70 z-0"></div>
 
                 {/* El Contenido (Aseguramos que esté por encima del overlay con z-10) */}
-                <div className="relative z-10 max-w-3xl mx-auto">
-                    <h2 className="text-4xl md:text-5xl font-extrabold mb-4 text-white">El mejor ambiente, las mejores mesas.</h2>
-                    <p className="text-lg md:text-xl text-gray-300 mb-8">Reserva tu mesa de pool al instante y asegura tu noche con amigos.</p>
+                <div className="relative z-10 max-w-3xl mx-auto flex flex-col items-center justify-center min-h-[150px]">
+
+                    {/* Renderizado condicional: Solo mostramos si hay texto en la base de datos */}
+                    {jumbotron.title && (
+                        <h2 className="text-4xl md:text-5xl font-extrabold mb-4 text-white drop-shadow-lg">
+                            {jumbotron.title}
+                        </h2>
+                    )}
+
+                    {jumbotron.subtitle && (
+                        <p className="text-lg md:text-xl text-gray-300 mb-8 drop-shadow-md">
+                            {jumbotron.subtitle}
+                        </p>
+                    )}
 
                     {!isLoggedIn && (
-                        <Link to="/login" className="inline-block bg-brand-primary text-brand-dark font-bold text-lg px-8 py-3 rounded shadow-lg shadow-brand-primary/20 hover:bg-emerald-400 transition-all transform hover:scale-105">
+                        <Link to="/login" className="inline-block mt-4 bg-brand-primary text-brand-dark font-bold text-lg px-8 py-3 rounded shadow-lg shadow-brand-primary/20 hover:bg-emerald-400 transition-all transform hover:scale-105">
                             Reserva Ahora
                         </Link>
                     )}

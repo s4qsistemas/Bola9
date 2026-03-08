@@ -69,3 +69,11 @@ model Booking {
   createdAt   DateTime      @default(now())
   @@index([startTime, endTime]) 
 }
+
+model JumbotronSettings {
+  id        Int      @id @default(1)
+  title     String?  
+  subtitle  String?  
+  imageUrl  String?  
+  updatedAt DateTime @updatedAt
+}
