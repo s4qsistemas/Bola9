@@ -139,7 +139,16 @@ export default function Admin() {
         if (!window.confirm(`¿Seguro que deseas ${currentStatus ? 'Banear' : 'Reactivar'} a este usuario?`)) return;
         try {
             await api.patch(`/api/admin/users/${userId}/status`, {}, getHeaders());
-            setUsers(prev => prev.map(u => u.id === userId ? { ...u, isActive: !currentStatus } : u));
+            setUsers(prev => prev.map(u => u.id === userId ? {
+                ...u,
+                isActive: !currentStatus,
+                // Al reactivar: reflejar el reset de strikes y el incremento del prontuario
+                ...(!currentStatus === true && {
+                    cancelCount: 0,
+                    noShowCount: 0,
+                    totalBans: (u.totalBans || 0) + 1
+                })
+            } : u));
             if (currentStatus === true) fetchBookings();
         } catch (err) { alert(err.response?.data?.error); }
     };
@@ -430,6 +439,11 @@ export default function Admin() {
                                                             <div className="flex flex-col gap-1 text-xs">
                                                                 <span className={`${u.cancelCount > 0 ? 'text-amber-400' : 'text-gray-400'}`}>Strikes (Atrasos): <span className="font-medium">{u.cancelCount}/3</span></span>
                                                                 <span className={`${hasRedCard ? 'text-red-400' : 'text-gray-400'}`}>No-Shows (T. Rojas): <span className="font-medium">{u.noShowCount}</span></span>
+                                                                {(u.totalBans > 0 || u.totalNoShows > 0) && (
+                                                                    <span className="text-gray-500 border-t border-slate-700 pt-1 mt-1">
+                                                                        Prontuario: {u.totalBans} ban{u.totalBans !== 1 ? 'es' : ''} · {u.totalNoShows} roja{u.totalNoShows !== 1 ? 's' : ''}
+                                                                    </span>
+                                                                )}
                                                             </div>
                                                         )}
                                                     </td>
@@ -599,6 +613,7 @@ export default function Admin() {
                                                 <th className="p-3 font-medium">Mesa</th>
                                                 <th className="p-3 font-medium">Duración</th>
                                                 <th className="p-3 font-medium">Estado</th>
+                                                <th className="p-3 font-medium">Detalle</th>
                                             </tr>
                                         </thead>
                                         <tbody className="divide-y divide-slate-800">
@@ -629,6 +644,23 @@ export default function Admin() {
                                                                     b.status === 'COMPLETED' ? 'Completada' :
                                                                         b.status === 'NO_SHOW' ? 'No-Show' : 'Cancelada'}
                                                             </span>
+                                                        </td>
+                                                        <td className="p-3">
+                                                            {b.cancellationReason ? (
+                                                                <span className={`text-xs px-2 py-0.5 rounded ${b.cancellationReason.includes('Strike') ? 'bg-amber-500/10 text-amber-400' :
+                                                                    b.cancellationReason.includes('Roja') ? 'bg-red-500/10 text-red-400' :
+                                                                        b.cancellationReason.includes('Perdonazo') ? 'bg-slate-700 text-gray-300' :
+                                                                            'bg-slate-700 text-gray-400'
+                                                                    }`}>
+                                                                    {b.cancellationReason.includes('Strike') ? '⚠️ Strike' :
+                                                                        b.cancellationReason.includes('Roja') ? '🟥 T. Roja' :
+                                                                            b.cancellationReason.includes('Perdonazo') ? '🤝 Perdonazo' :
+                                                                                b.cancellationReason.includes('anticipación') ? '✅ A tiempo' :
+                                                                                    b.cancellationReason}
+                                                                </span>
+                                                            ) : (
+                                                                <span className="text-gray-600 text-xs">—</span>
+                                                            )}
                                                         </td>
                                                     </tr>
                                                 );

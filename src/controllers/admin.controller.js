@@ -67,7 +67,7 @@ const updateBookingStatus = async (req, res) => {
             if (status === 'NO_SHOW') {
                 await tx.user.update({
                     where: { id: booking.userId },
-                    data: { noShowCount: booking.user.noShowCount + 1, isActive: false }
+                    data: { noShowCount: booking.user.noShowCount + 1, isActive: false, totalNoShows: { increment: 1 } }
                 });
                 await tx.booking.updateMany({
                     where: { userId: booking.userId, status: 'CONFIRMED', startTime: { gt: new Date() } },
@@ -105,12 +105,15 @@ const getUsers = async (req, res) => {
                 id: true, name: true, alias: true, email: true, role: true, isActive: true,
                 cancelCount: true, // LOS STRIKES
                 noShowCount: true, // LAS TARJETAS ROJAS
+                totalBans: true, // PRONTUARIO: Baneos acumulados
+                totalNoShows: true, // PRONTUARIO: No-Shows acumulados
                 createdAt: true
             },
             orderBy: { createdAt: 'desc' }
         });
         res.status(200).json({ data: users });
     } catch (error) {
+        console.error('Error interno al obtener usuarios:', error);
         res.status(500).json({ error: 'Error interno al obtener usuarios.' });
     }
 };
@@ -132,7 +135,15 @@ const toggleUserStatus = async (req, res) => {
             // Acción 1: Cambiar estado del usuario
             prisma.user.update({
                 where: { id },
-                data: { isActive: newStatus }
+                data: {
+                    isActive: newStatus,
+                    // Al REACTIVAR: borrón y cuenta nueva + acumular en prontuario
+                    ...(newStatus === true && {
+                        cancelCount: 0,
+                        noShowCount: 0,
+                        totalBans: { increment: 1 }
+                    })
+                }
             }),
             // Acción 2: Si lo estamos baneando (newStatus === false), cancelamos sus reservas futuras
             ...(newStatus === false ? [

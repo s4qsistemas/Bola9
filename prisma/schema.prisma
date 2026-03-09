@@ -29,6 +29,8 @@ model User {
   role      Role      @default(USER)
   cancelCount        Int       @default(0)     
   noShowCount        Int       @default(0)     
+  totalBans          Int       @default(0)     
+  totalNoShows       Int       @default(0)     
   mustChangePassword Boolean   @default(false) 
   bookings  Booking[]
   createdAt DateTime  @default(now())
