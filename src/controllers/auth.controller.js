@@ -6,12 +6,17 @@ const prisma = new PrismaClient();
 
 const register = async (req, res) => {
     try {
-        const { email, password, name, alias } = req.body;
+        // Usamos 'let' para poder transformar el email
+        let { email, password, name, alias } = req.body;
 
         // 1. Validar datos mínimos
         if (!email || !password || !name) {
             return res.status(400).json({ error: 'Email, contraseña y nombre son obligatorios.' });
         }
+
+        // --- NORMALIZACIÓN VITAL ---
+        // Convertimos a minúsculas estrictas y quitamos espacios al inicio/final
+        email = email.toLowerCase().trim();
 
         // 2. Verificar que el correo no exista ya en la base de datos
         const existingUser = await prisma.user.findUnique({
@@ -27,17 +32,16 @@ const register = async (req, res) => {
         const hashedPassword = await bcrypt.hash(password, salt);
 
         // 4. Crear el usuario en la base de datos
-        // Nota: El rol por defecto en Prisma ya es 'USER' y isActive es 'true'
         const newUser = await prisma.user.create({
             data: {
-                email,
+                email, // <- Ahora viaja 100% limpio y en minúsculas
                 password: hashedPassword,
                 name,
                 alias: alias || null,
             },
         });
 
-        // 5. Devolver respuesta limpia (NUNCA devolver la contraseña)
+        // 5. Devolver respuesta limpia
         res.status(201).json({
             message: 'Usuario registrado exitosamente',
             user: {
@@ -56,16 +60,21 @@ const register = async (req, res) => {
 
 const login = async (req, res) => {
     try {
-        const { email, password } = req.body;
+        // Usamos 'let' para poder transformar el email
+        let { email, password } = req.body;
 
-        // 1. Validación de entrada (Falla rápido)
+        // 1. Validación de entrada
         if (!email || !password) {
             return res.status(400).json({ error: 'Email y contraseña son obligatorios.' });
         }
 
+        // --- NORMALIZACIÓN VITAL ---
+        // Protege contra logins fallidos por culpa del autocorrector del celular
+        email = email.toLowerCase().trim();
+
         // 2. Buscar al usuario
         const user = await prisma.user.findUnique({
-            where: { email },
+            where: { email }, // <- Prisma buscará siempre la versión en minúsculas
         });
 
         if (!user) {
@@ -83,7 +92,7 @@ const login = async (req, res) => {
             return res.status(401).json({ error: 'Credenciales inválidas.' });
         }
 
-        // 5. Generar JWT (Solo viaja información no sensible)
+        // 5. Generar JWT
         const token = jwt.sign(
             {
                 id: user.id,
@@ -91,7 +100,7 @@ const login = async (req, res) => {
                 alias: user.alias || user.name
             },
             process.env.JWT_SECRET,
-            { expiresIn: '8h' } // Las sesiones del pool no necesitan durar días
+            { expiresIn: '8h' }
         );
 
         // 6. Respuesta limpia al frontend
@@ -114,10 +123,9 @@ const login = async (req, res) => {
     }
 };
 
-// 3. Forzar cambio de contraseña (después del reseteo del admin)
+// 3. Forzar cambio de contraseña (se mantiene intacto)
 const updatePassword = async (req, res) => {
     try {
-        // Obtenemos el ID desde el token (el middleware ya lo validó)
         const userId = req.user.id;
         const { newPassword } = req.body;
 
@@ -131,7 +139,7 @@ const updatePassword = async (req, res) => {
             where: { id: userId },
             data: {
                 password: hashedPassword,
-                mustChangePassword: false // <-- LIBERAMOS AL USUARIO DE LA TRAMPA
+                mustChangePassword: false
             }
         });
 

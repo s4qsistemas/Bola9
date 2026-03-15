@@ -64,10 +64,11 @@ export default function Home() {
     };
 
     // --- ESTADO DEL JUMBOTRON DINÁMICO ---
+    const [isLoadingJumbotron, setIsLoadingJumbotron] = useState(true); // Controla el parpadeo
     const [jumbotron, setJumbotron] = useState({
-        title: 'El mejor ambiente, las mejores mesas.',
-        subtitle: 'Reserva tu mesa de pool al instante y asegura tu noche con amigos.',
-        imageUrl: '/fondo_jumbotron.png' // La imagen por defecto en caso de fallo
+        title: '',
+        subtitle: '',
+        imageUrl: null
     });
 
     // Cargar Jumbotron al montar la página
@@ -83,8 +84,6 @@ export default function Home() {
                     setJumbotron({
                         title: data.title !== null ? data.title : 'El mejor ambiente, las mejores mesas.',
                         subtitle: data.subtitle !== null ? data.subtitle : 'Reserva tu mesa de pool al instante y asegura tu noche con amigos.',
-
-                        // LÓGICA LIMPIA AL IGUAL QUE EN EL ADMIN
                         imageUrl: data.imageUrl
                             ? `${baseUrl}${data.imageUrl}`
                             : '/fondo_jumbotron.png'
@@ -92,6 +91,15 @@ export default function Home() {
                 }
             } catch (error) {
                 console.error("No se pudo cargar el jumbotron dinámico, usando el por defecto.", error);
+                // Salvavidas manual si el backend no responde
+                setJumbotron({
+                    title: 'El mejor ambiente, las mejores mesas.',
+                    subtitle: 'Reserva tu mesa de pool al instante y asegura tu noche con amigos.',
+                    imageUrl: '/fondo_jumbotron.png'
+                });
+            } finally {
+                // Terminamos de cargar, sea éxito o error
+                setIsLoadingJumbotron(false);
             }
         };
 
@@ -256,37 +264,46 @@ export default function Home() {
                 </div>
             </nav>
 
-            {/* Jumbotron Dinámico */}
-            <header
-                className="relative py-16 md:py-24 px-4 text-center border-b border-slate-700 bg-cover bg-center bg-no-repeat transition-all duration-500"
-                style={{ backgroundImage: `url('${jumbotron.imageUrl}')` }}
-            >
-                {/* La capa oscura (Overlay) que garantiza que el texto siempre se lea */}
-                <div className="absolute inset-0 bg-slate-900/70 z-0"></div>
-
-                {/* El Contenido (Aseguramos que esté por encima del overlay con z-10) */}
-                <div className="relative z-10 max-w-3xl mx-auto flex flex-col items-center justify-center min-h-[150px]">
-
-                    {/* Renderizado condicional: Solo mostramos si hay texto en la base de datos */}
-                    {jumbotron.title && (
-                        <h2 className="text-4xl md:text-5xl font-extrabold mb-4 text-white drop-shadow-lg">
-                            {jumbotron.title}
-                        </h2>
-                    )}
-
-                    {jumbotron.subtitle && (
-                        <p className="text-lg md:text-xl text-gray-300 mb-8 drop-shadow-md">
-                            {jumbotron.subtitle}
-                        </p>
-                    )}
-
-                    {!isLoggedIn && (
-                        <Link to="/login" className="inline-block mt-4 bg-brand-primary text-brand-dark font-bold text-lg px-8 py-3 rounded shadow-lg shadow-brand-primary/20 hover:bg-emerald-400 transition-all transform hover:scale-105">
-                            Reserva Ahora
-                        </Link>
-                    )}
+            {/* Jumbotron Dinámico y Skeleton */}
+            {isLoadingJumbotron ? (
+                // Skeleton Loader: Previene el parpadeo de datos falsos
+                <div className="w-full h-[350px] md:h-[450px] bg-slate-800 animate-pulse border-b border-slate-700 flex flex-col items-center justify-center px-4">
+                    <div className="w-3/4 max-w-2xl h-12 bg-slate-700 rounded mb-4"></div>
+                    <div className="w-1/2 max-w-lg h-6 bg-slate-700 rounded mb-8"></div>
+                    <div className="w-40 h-12 bg-slate-700 rounded mt-4"></div>
                 </div>
-            </header>
+            ) : (
+                <header
+                    className="relative py-16 md:py-24 px-4 text-center border-b border-slate-700 bg-cover bg-center bg-no-repeat transition-all duration-500"
+                    style={{ backgroundImage: `url('${jumbotron.imageUrl}')` }}
+                >
+                    {/* La capa oscura (Overlay) que garantiza que el texto siempre se lea */}
+                    <div className="absolute inset-0 bg-slate-900/70 z-0"></div>
+
+                    {/* El Contenido (Aseguramos que esté por encima del overlay con z-10) */}
+                    <div className="relative z-10 max-w-3xl mx-auto flex flex-col items-center justify-center min-h-[150px]">
+
+                        {/* Renderizado condicional: Solo mostramos si hay texto en la base de datos */}
+                        {jumbotron.title && (
+                            <h2 className="text-4xl md:text-5xl font-extrabold mb-4 text-white drop-shadow-lg">
+                                {jumbotron.title}
+                            </h2>
+                        )}
+
+                        {jumbotron.subtitle && (
+                            <p className="text-lg md:text-xl text-gray-300 mb-8 drop-shadow-md">
+                                {jumbotron.subtitle}
+                            </p>
+                        )}
+
+                        {!isLoggedIn && (
+                            <Link to="/login" className="inline-block mt-4 bg-brand-primary text-brand-dark font-bold text-lg px-8 py-3 rounded shadow-lg shadow-brand-primary/20 hover:bg-emerald-400 transition-all transform hover:scale-105">
+                                Reserva Ahora
+                            </Link>
+                        )}
+                    </div>
+                </header>
+            )}
 
             {/* Grid de Mesas */}
             <main className="max-w-6xl mx-auto p-6 md:p-8 relative">
