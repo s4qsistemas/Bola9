@@ -15,7 +15,7 @@ export default function Home() {
     // Audio pre-cargado
     const bookingSoundRef = useRef(null);
     useEffect(() => {
-        const audio = new Audio('/billiards.wav');
+        const audio = new Audio(`${import.meta.env.BASE_URL}billiards.wav`);
         audio.preload = 'auto';
         audio.load();
         bookingSoundRef.current = audio;
@@ -86,7 +86,7 @@ export default function Home() {
                         subtitle: data.subtitle !== null ? data.subtitle : 'Reserva tu mesa de pool al instante y asegura tu noche con amigos.',
                         imageUrl: data.imageUrl
                             ? `${baseUrl}${data.imageUrl}`
-                            : '/fondo_jumbotron.png'
+                            : `${import.meta.env.BASE_URL}fondo_jumbotron.png`
                     });
                 }
             } catch (error) {
@@ -95,7 +95,7 @@ export default function Home() {
                 setJumbotron({
                     title: 'El mejor ambiente, las mejores mesas.',
                     subtitle: 'Reserva tu mesa de pool al instante y asegura tu noche con amigos.',
-                    imageUrl: '/fondo_jumbotron.png'
+                    imageUrl: `${import.meta.env.BASE_URL}fondo_jumbotron.png`
                 });
             } finally {
                 // Terminamos de cargar, sea éxito o error
