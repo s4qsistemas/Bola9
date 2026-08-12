@@ -13,6 +13,38 @@ services:
       - "5433:5432"
     volumes:
       - bola9_data:/var/lib/postgresql/data
+    networks:
+      - bola9_network
+
+  backend:
+    build: .
+    container_name: bola9_backend
+    restart: always
+    depends_on:
+      - postgres_db
+    environment:
+      - DATABASE_URL=postgresql://bola9_admin:bola9_password_segura@postgres_db:5432/bola9_db?schema=public
+      - JWT_SECRET=cambia_este_secreto_en_produccion
+      - PORT=3000
+    networks:
+      - bola9_network
+    volumes:
+      - bola9_uploads:/app/uploads
+
+  frontend:
+    build: ./bola9-frontend
+    container_name: bola9_frontend
+    restart: always
+    depends_on:
+      - backend
+    ports:
+      - "3003:80"
+    networks:
+      - bola9_network
 
 volumes:
   bola9_data:
+  bola9_uploads:
+
+networks:
+  bola9_network:

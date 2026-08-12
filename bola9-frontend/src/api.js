@@ -1,8 +1,8 @@
 import axios from 'axios';
 
 // Si existe la variable (Producción), la usa. 
-// Si NO existe (Desarrollo/Ngrok), usa el string vacío '' para que el Proxy de Vite actúe.
-const API_BASE_URL = import.meta.env.VITE_API_URL || '';
+// Si NO existe (Desarrollo/Ngrok), usa el BASE_URL (ej. /bola9/api) para que el Proxy actúe.
+const API_BASE_URL = import.meta.env.VITE_API_URL || import.meta.env.BASE_URL + 'api';
 
 const api = axios.create({
     baseURL: API_BASE_URL,
