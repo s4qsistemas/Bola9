@@ -22,10 +22,8 @@ services:
     restart: always
     depends_on:
       - postgres_db
-    environment:
-      - DATABASE_URL=postgresql://bola9_admin:bola9_password_segura@postgres_db:5432/bola9_db?schema=public
-      - JWT_SECRET=cambia_este_secreto_en_produccion
-      - PORT=3000
+    env_file:
+      - .env
     networks:
       - bola9_network
     volumes:
